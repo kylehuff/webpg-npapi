@@ -1,0 +1,56 @@
+<html>
+<head>
+    <title>Test page for the WebPG NPAPI Plugin</title>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function(){
+            plugin = document.createElement('embed');
+            plugin.id = 'plugin';
+            plugin.type = 'application/x-webpg';
+            plugin.style.visibility = "hidden";
+            plugin.style.display = "inline";
+            plugin.style.float = "right";
+            document.body.appendChild(plugin);
+            var result = plugin.valid;
+            console.log("my plugin returned: " + result);
+
+            $('#validity')[0].innerText = result;
+
+            version = plugin.version;
+            
+            $('#version')[0].innerText = version;
+
+            public_keylist = plugin.getPublicKeyList();
+
+            if (public_keylist) {
+                $('#public-keylist')[0].innerHTML = "";
+
+                for (key in public_keylist) {
+                    $('#public-keylist')[0].innerHTML += public_keylist[key].name + " -- " + key + "<br/>";
+                }
+            }
+
+            private_keylist = plugin.getPrivateKeyList();
+
+            if (private_keylist) {
+                $('#private-keylist')[0].innerHTML = "";
+
+                for (key in private_keylist) {
+                    $('#private-keylist')[0].innerHTML += private_keylist[key].name + " -- " + key + "<br/>";
+                }
+            }
+
+        });
+    </script>
+</head>
+<body>
+    <h2>Plugin valid:</h2>
+    <span id="validity">Unknown</span>
+    <h2>Plugin version:</h2>
+    <span id="version">Unknown</span>
+    <h2>Public Key List:</h2>
+    <span id="public-keylist">Not available or empty</span>
+    <h2>Private Key List:</h2>
+    <span id="private-keylist">Not available or empty</span>
+</body>
+</html>
