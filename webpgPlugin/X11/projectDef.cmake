@@ -17,6 +17,8 @@ SOURCE_GROUP(X11 FILES ${PLATFORM})
 
 # use this to add preprocessor definitions
 add_definitions(
+    -D_FILE_OFFSET_BITS=64
+    -DCMAKE_BUILD_TYPE=MinSizeRel
 )
 
 set (SOURCES
@@ -29,4 +31,6 @@ add_x11_plugin(${PROJECT_NAME} SOURCES)
 # add library dependencies here; leave ${PLUGIN_INTERNAL_DEPS} there unless you know what you're doing!
 target_link_libraries(${PROJECT_NAME}
     ${PLUGIN_INTERNAL_DEPS}
+    -lgpgme
+    -lgpg-error
     )

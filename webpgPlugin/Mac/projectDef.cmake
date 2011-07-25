@@ -15,7 +15,7 @@ file (GLOB PLATFORM RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
 
 # use this to add preprocessor definitions
 add_definitions(
-    
+    -DCMAKE_OSX_ARCHITECTURES=i386
 )
 
 
@@ -35,4 +35,11 @@ add_mac_plugin(${PROJECT_NAME} ${PLIST} ${STRINGS} ${LOCALIZED} SOURCES)
 # add library dependencies here; leave ${PLUGIN_INTERNAL_DEPS} there unless you know what you're doing!
 target_link_libraries(${PROJECT_NAME}
     ${PLUGIN_INTERNAL_DEPS}
+    -L/opt/local/var/macports/software/gpgme/1.2.0_0/opt/local/lib/
+    -L/opt/local/var/macports/software/libgpg-error/1.9_0/opt/local/lib/
+    -I/usr/include/
+    -I/opt/local/var/macports/software/libgpg-error/1.9_0/opt/local/include/
+    -I/opt/local/var/macports/software/gpgme/1.2.0_0/opt/local/include/
+    -lgpgme
+    -lgpg-error
     )

@@ -16,6 +16,7 @@ file (GLOB PLATFORM RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
 # use this to add preprocessor definitions
 add_definitions(
     /D "_ATL_STATIC_REGISTRY"
+    /D "HAVE_W32_SYSTEM"
 )
 
 SOURCE_GROUP(Win FILES ${PLATFORM})
@@ -47,6 +48,8 @@ add_windows_plugin(${PROJECT_NAME} SOURCES)
 # add library dependencies here; leave ${PLUGIN_INTERNAL_DEPS} there unless you know what you're doing!
 target_link_libraries(${PROJECT_NAME}
     ${PLUGIN_INTERNAL_DEPS}
+    libgpg-error-0
+    libgpgme-11
     )
 
 set(WIX_HEAT_FLAGS
