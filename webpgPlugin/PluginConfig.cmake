@@ -8,6 +8,7 @@
 set(PLUGIN_NAME "webpgPlugin")
 set(PLUGIN_PREFIX "WEBPG")
 set(COMPANY_NAME "CURETHEITCH")
+set(CMAKE_BUILD_TYPE MinSizeRel)
 
 # ActiveX constants:
 set(FBTYPELIB_NAME webpgPluginLib)
