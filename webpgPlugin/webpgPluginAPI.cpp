@@ -73,6 +73,8 @@ webpgPluginAPI::webpgPluginAPI(const webpgPluginPtr& plugin, const FB::BrowserHo
     registerMethod("gpgDeleteUIDSign", make_method(this, &webpgPluginAPI::gpgDeleteUIDSign));
     registerMethod("gpgGenKey", make_method(this, &webpgPluginAPI::gpgGenKey));
     registerMethod("gpgImportKey", make_method(this, &webpgPluginAPI::gpgImportKey));
+    registerMethod("gpgDeletePublicKey", make_method(this, &webpgPluginAPI::gpgDeletePublicKey));
+    registerMethod("gpgDeletePrivateKey", make_method(this, &webpgPluginAPI::gpgDeletePrivateKey));
 
     registerEvent("onkeygenprogress");
     registerEvent("onkeygencomplete");
@@ -1025,6 +1027,56 @@ FB::variant webpgPluginAPI::gpgImportKey(const std::string& ascii_key) {
     gpgme_release (ctx);
 
     return status;
+}
+
+FB::variant webpgPluginAPI::gpgDeleteKey(const std::string& keyid, int allow_secret) {
+    gpgme_ctx_t ctx = get_gpgme_ctx();
+    gpgme_error_t err;
+    gpgme_data_t out = NULL;
+    gpgme_key_t key = NULL;
+    FB::VariantMap response;
+
+    err = gpgme_op_keylist_start (ctx, keyid.c_str(), 0);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_op_keylist_next (ctx, &key);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_op_keylist_end (ctx);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_op_delete(ctx, key, allow_secret);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    gpgme_key_unref (key);
+    gpgme_release (ctx);
+
+    response["error"] = false;
+    response["result"] = "Key deleted";
+
+    return response;
+}
+
+/*
+    This method executes webpgPlugin.gpgDeleteKey with the allow_secret=0,
+        which allows it to only delete public Public Keys from the keyring.
+*/
+
+FB::variant webpgPluginAPI::gpgDeletePublicKey(const std::string& keyid){
+    return webpgPluginAPI::gpgDeleteKey(keyid, 0);
+}
+
+/*
+    This method executes webpgPlugin.gpgDeleteKey with the allow_secret=1,
+        which allows it to delete Private and Public Keys from the keyring.
+*/
+
+FB::variant webpgPluginAPI::gpgDeletePrivateKey(const std::string& keyid){
+    return webpgPluginAPI::gpgDeleteKey(keyid, 1);
 }
 
 // Read-only property version

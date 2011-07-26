@@ -68,6 +68,9 @@ public:
             const std::string& passphrase);
     void threaded_gpgGenKey(genKeyParams params);
     FB::variant gpgImportKey(const std::string& ascii_key);
+    FB::variant gpgDeleteKey(const std::string& keyid, int allow_secret);
+    FB::variant gpgDeletePublicKey(const std::string& keyid);
+    FB::variant gpgDeletePrivateKey(const std::string& keyid);
 
     std::string get_version();
     bool gpgconf_detected();
