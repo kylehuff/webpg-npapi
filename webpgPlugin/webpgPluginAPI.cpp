@@ -598,7 +598,7 @@ FB::variant webpgPluginAPI::gpgDecrypt(const std::string& data)
     decrypt_result = gpgme_op_decrypt_result (ctx);
     verify_result = gpgme_op_verify_result (ctx);
 
-    if (err != GPG_ERR_NO_ERROR) {
+    if (err != GPG_ERR_NO_ERROR && !verify_result) {
         // There was an error returned while decrypting;
         //   either bad data, or signed only data
         if (verify_result->signatures) {
