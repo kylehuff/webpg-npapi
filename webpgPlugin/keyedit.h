@@ -7,12 +7,19 @@
 
 /* Global variables for the handling of UID signing or
     deleting signatures on UIDs */
+
 // index number of the UID which contains the signature to delete/revoke
 std::string current_uid;
+
 // index number for the signature to select
 std::string current_sig;
+
+// trust value to assign
+std::string trust_assignment;
+
 // Used as iter count for current signature index
 static int signature_iter = 1;
+
 // Used to keep track of the current edit iteration
 static int step = 0;
 
@@ -162,10 +169,7 @@ edit_fnc_delsign (void *opaque, gpgme_status_code_t status, const char *args, in
 gpgme_error_t
 edit_fnc_disable (void *opaque, gpgme_status_code_t status, const char *args, int fd)
 {
-  /* this works for disabling keys -
-    you must populate the global variables before calling this method for this to work -
-        current_uid = <the index of the UID which has the signature you wish to delete>
-        current_sig = <the index of signature you wish to delete>  */
+  /* this works for disabling keys */
     char *response = NULL;
 
     if (fd >= 0) {
@@ -234,6 +238,61 @@ edit_fnc_enable (void *opaque, gpgme_status_code_t status, const char *args, int
             }
             step++;
         } else if (!strcmp (args, "keyedit.save.okay")) {
+            response = (char *) "Y";
+        } else if (!strcmp (args, "passphrase.enter")) {
+            response = (char *) "";
+        } else {
+        	fprintf (stdout, "We shouldn't reach this line actually; Line: %i\n", __LINE__);
+        }
+    }
+
+    if (response) {
+#ifdef HAVE_W32_SYSTEM
+        DWORD written;
+        WriteFile ((HANDLE) fd, response, strlen (response), &written, 0);
+        WriteFile ((HANDLE) fd, "\n", 1, &written, 0);
+#else
+        ssize_t write_result;
+        write_result = write (fd, response, strlen (response));
+        write_result = write (fd, "\n", 1);
+#endif
+    }
+    return 0;
+}
+
+gpgme_error_t
+edit_fnc_assign_trust (void *opaque, gpgme_status_code_t status, const char *args, int fd)
+{
+  /* this assigns the trust to the key 
+        the string trust_assignment must be populated before calling this method */
+    char *response = NULL;
+
+    if (fd >= 0) {
+        if (!strcmp (args, "keyedit.prompt")) {
+            static int step = 0;
+
+            switch (step) {
+                case 0:
+                    response = (char *) "trust";
+                    break;
+                case 1:
+                	response = (char *) "trust";
+                	break;
+
+                default:
+                    step = 0;
+                    response = (char *) "quit";
+                    break;
+            }
+            step++;
+        } else if (!strcmp (args, "edit_ownertrust.value")) {
+            if (step < 15) {
+                response = (char *) trust_assignment.c_str();
+                step++;
+            } else {
+                response = (char *) "m";
+            }
+        } else if (!strcmp (args, "edit_ownertrust.set_ultimate.okay")) {
             response = (char *) "Y";
         } else if (!strcmp (args, "passphrase.enter")) {
             response = (char *) "";

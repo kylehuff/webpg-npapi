@@ -71,6 +71,7 @@ public:
     FB::variant gpgDeleteKey(const std::string& keyid, int allow_secret);
     FB::variant gpgDeletePublicKey(const std::string& keyid);
     FB::variant gpgDeletePrivateKey(const std::string& keyid);
+    FB::variant gpgSetKeyTrust(const std::string& keyid, long trust_level);
 
     std::string get_version();
     bool gpgconf_detected();

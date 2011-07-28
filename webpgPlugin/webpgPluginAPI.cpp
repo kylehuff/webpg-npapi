@@ -75,6 +75,7 @@ webpgPluginAPI::webpgPluginAPI(const webpgPluginPtr& plugin, const FB::BrowserHo
     registerMethod("gpgImportKey", make_method(this, &webpgPluginAPI::gpgImportKey));
     registerMethod("gpgDeletePublicKey", make_method(this, &webpgPluginAPI::gpgDeletePublicKey));
     registerMethod("gpgDeletePrivateKey", make_method(this, &webpgPluginAPI::gpgDeletePrivateKey));
+    registerMethod("gpgSetKeyTrust", make_method(this, &webpgPluginAPI::gpgSetKeyTrust));
 
     registerEvent("onkeygenprogress");
     registerEvent("onkeygencomplete");
@@ -273,6 +274,12 @@ FB::VariantMap webpgPluginAPI::getKeyList(const std::string& name, int secret_on
         key_map["can_certify"] = key->can_certify? true : false;
         key_map["can_authenticate"] = key->can_authenticate? true : false;
         key_map["is_qualified"] = key->is_qualified? true : false;
+        key_map["owner_trust"] = key->owner_trust == GPGME_VALIDITY_UNKNOWN? "unknown":
+            key->owner_trust == GPGME_VALIDITY_UNDEFINED? "undefined":
+            key->owner_trust == GPGME_VALIDITY_NEVER? "never":
+            key->owner_trust == GPGME_VALIDITY_MARGINAL? "marginal":
+            key->owner_trust == GPGME_VALIDITY_FULL? "full":
+            key->owner_trust == GPGME_VALIDITY_ULTIMATE? "ultimate": "[?]";
 
         FB::VariantMap subkeys_map;
         for (nsubs=0, subkey=key->subkeys; subkey; subkey = subkey->next, nsubs++) {
@@ -930,7 +937,7 @@ std::string webpgPluginAPI::gpgGenKeyWorker(const std::string& key_type, const s
     const char *parms = params.c_str();
 
     gpgme_genkey_result_t result;
-   
+
     gpgme_set_progress_cb (ctx, cb_status, APIObj);
 
     err = gpgme_op_genkey (ctx, parms, NULL, NULL);
@@ -987,7 +994,7 @@ std::string webpgPluginAPI::gpgGenKey(const std::string& key_type,
     params.name_email = name_email;
     params.expire_date = expire_date;
     params.passphrase = passphrase;
-    
+
     boost::thread genkey_thread(
         boost::bind(
             &webpgPluginAPI::threadCaller,
@@ -1094,6 +1101,53 @@ FB::variant webpgPluginAPI::gpgDeletePublicKey(const std::string& keyid){
 
 FB::variant webpgPluginAPI::gpgDeletePrivateKey(const std::string& keyid){
     return webpgPluginAPI::gpgDeleteKey(keyid, 1);
+}
+
+FB::variant webpgPluginAPI::gpgSetKeyTrust(const std::string& keyid, long trust_level)
+{
+    gpgme_ctx_t ctx = get_gpgme_ctx();
+    gpgme_error_t err;
+    gpgme_data_t out = NULL;
+    gpgme_key_t key = NULL;
+    FB::VariantMap response;
+    trust_assignment = i_to_str(trust_level);
+
+    if (trust_level < 1) {
+        response["error"] = true;
+        response["result"] = "Valid trust assignment values are 1 through 5";
+        return response;
+    }
+
+    err = gpgme_op_keylist_start (ctx, keyid.c_str(), 0);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_op_keylist_next (ctx, &key);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_op_keylist_end (ctx);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_data_new (&out);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_op_edit (ctx, key, edit_fnc_assign_trust, out, out);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    trust_assignment = "0";
+
+    gpgme_data_release (out);
+    gpgme_key_unref (key);
+    gpgme_release (ctx);
+
+    response["error"] = false;
+    response["result"] = "trust value assigned";
+
+    return response;
 }
 
 // Read-only property version
