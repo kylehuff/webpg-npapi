@@ -213,6 +213,7 @@ FB::VariantMap webpgPluginAPI::getKeyList(const std::string& name, int secret_on
     gpgme_user_id_t uid;
     gpgme_key_sig_t sig;
     gpgme_subkey_t subkey;
+    gpgme_pubkey_algo_t pubkey_algo;
     FB::VariantMap keylist_map;
 
     FB::VariantMap uid_map;
@@ -287,6 +288,8 @@ FB::VariantMap webpgPluginAPI::getKeyList(const std::string& name, int secret_on
             subkey_item_map["can_certify"] = subkey->can_certify? true : false;
             subkey_item_map["can_authenticate"] = subkey->can_authenticate? true : false;
             subkey_item_map["is_qualified"] = subkey->is_qualified? true : false;
+            subkey_item_map["algorithm"] = subkey->pubkey_algo;
+            subkey_item_map["algorithm_name"] = nonnull (gpgme_pubkey_algo_name(subkey->pubkey_algo));
             subkey_item_map["size"] = subkey->length;
             subkey_item_map["created"] = subkey->timestamp;
             subkey_item_map["expires"] = subkey->expires;
@@ -312,7 +315,21 @@ FB::VariantMap webpgPluginAPI::getKeyList(const std::string& name, int secret_on
             FB::VariantMap signatures_map;
 
             for (nsigs=0, sig=uid->signatures; sig; sig = sig->next, nsigs++) {
-                signatures_map[i_to_str(nsigs)] = nonnull (sig->keyid);
+                FB::VariantMap signature_map;
+                signature_map["keyid"] = nonnull (sig->keyid);
+                signature_map["algorithm"] = sig->pubkey_algo;
+                signature_map["algorithm_name"] = nonnull (gpgme_pubkey_algo_name(sig->pubkey_algo));
+                signature_map["revoked"] = sig->revoked? true : false;
+                signature_map["expired"] = sig->expired? true : false;
+                signature_map["invalid"] = sig->invalid? true : false;
+                signature_map["exportable"] = sig->exportable? true : false;
+                signature_map["created"] = sig->timestamp;
+                signature_map["expires"] = sig->expires;
+                signature_map["uid"] = nonnull (sig->uid);
+                signature_map["name"] = nonnull (sig->name);
+                signature_map["comment"] = nonnull (sig->comment);
+                signature_map["email"] = nonnull (sig->email);
+                signatures_map[i_to_str(nsigs)] = signature_map;
             }
             uid_item_map["signatures"] = signatures_map;
             uid_item_map["validity"] = uid->validity == GPGME_VALIDITY_UNKNOWN? "unknown":
