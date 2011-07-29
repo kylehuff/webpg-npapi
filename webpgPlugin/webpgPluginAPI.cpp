@@ -76,6 +76,11 @@ webpgPluginAPI::webpgPluginAPI(const webpgPluginPtr& plugin, const FB::BrowserHo
     registerMethod("gpgDeletePublicKey", make_method(this, &webpgPluginAPI::gpgDeletePublicKey));
     registerMethod("gpgDeletePrivateKey", make_method(this, &webpgPluginAPI::gpgDeletePrivateKey));
     registerMethod("gpgSetKeyTrust", make_method(this, &webpgPluginAPI::gpgSetKeyTrust));
+    registerMethod("gpgAddUID", make_method(this, &webpgPluginAPI::gpgAddUID));
+    registerMethod("gpgDeleteUID", make_method(this, &webpgPluginAPI::gpgDeleteUID));
+    registerMethod("gpgSetPrimaryUID", make_method(this, &webpgPluginAPI::gpgSetPrimaryUID));
+    registerMethod("gpgSetSubkeyExpire", make_method(this, &webpgPluginAPI::gpgSetSubkeyExpire));
+    registerMethod("gpgSetPubkeyExpire", make_method(this, &webpgPluginAPI::gpgSetPubkeyExpire));
 
     registerEvent("onkeygenprogress");
     registerEvent("onkeygencomplete");
@@ -84,6 +89,7 @@ webpgPluginAPI::webpgPluginAPI(const webpgPluginPtr& plugin, const FB::BrowserHo
     registerProperty("version",
                      make_property(this,
                         &webpgPluginAPI::get_version));
+
     // FIXME: This is set on init and never refreshed - however the values may change during runtime
     registerProperty("gpg_status",
                     make_property(this,
@@ -223,7 +229,6 @@ FB::VariantMap webpgPluginAPI::getKeyList(const std::string& name, int secret_on
     err = gpgme_set_protocol(ctx, GPGME_PROTOCOL_OpenPGP);
     if(err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
-        //keylist_map["error"] = "error: 2; Problem with protocol type";
 
     /* apply the keylist mode to the context and set
         the keylist_mode 
@@ -241,7 +246,6 @@ FB::VariantMap webpgPluginAPI::getKeyList(const std::string& name, int secret_on
     }
     if(err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
-        //return keylist_map["error"] = "error: 3; Problem with keylist_start";
 
     while (!(err = gpgme_op_keylist_next (ctx, &key)))
      {
@@ -359,7 +363,6 @@ FB::VariantMap webpgPluginAPI::getKeyList(const std::string& name, int secret_on
     if (result->truncated)
      {
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
-        //return keylist_map["error"] = "error: 4; Key listing unexpectedly truncated";
      }
     gpgme_release (ctx);
     return keylist_map;
@@ -1148,6 +1151,232 @@ FB::variant webpgPluginAPI::gpgSetKeyTrust(const std::string& keyid, long trust_
     response["result"] = "trust value assigned";
 
     return response;
+}
+
+FB::variant webpgPluginAPI::gpgAddUID(const std::string& keyid, const std::string& name,
+        const std::string& email, const std::string& comment)
+{
+    gpgme_ctx_t ctx = get_gpgme_ctx();
+    gpgme_error_t err;
+    gpgme_data_t out = NULL;
+    gpgme_key_t key = NULL;
+    FB::VariantMap response;
+    genuid_name = name;
+    genuid_email = email;
+    genuid_comment = comment;
+
+    if (isdigit(name.c_str()[0])) {
+        response["error"] = true;
+        response["result"] = "UID names cannot start with a digit...";
+        return response;
+    }
+
+    if (strlen (name.c_str()) < 5) {
+        response["error"] = true;
+        response["result"] = "UID's must be at least 5 chars long...";
+        return response;
+    }
+
+    edit_status = "";
+
+    err = gpgme_op_keylist_start (ctx, keyid.c_str(), 0);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_op_keylist_next (ctx, &key);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_op_keylist_end (ctx);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_data_new (&out);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_op_edit (ctx, key, edit_fnc_add_uid, out, out);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    response["name"] = genuid_name;
+    response["email"] = genuid_email;
+    response["comment"] = genuid_comment;
+
+    genuid_name = "";
+    genuid_email = "";
+    genuid_comment = "";
+
+    gpgme_data_release (out);
+    gpgme_key_unref (key);
+    gpgme_release (ctx);
+
+    response["error"] = false;
+    response["edit_status"] = edit_status;
+    response["result"] = "UID added";
+
+    return response;
+}
+
+FB::variant webpgPluginAPI::gpgDeleteUID(const std::string& keyid, long uid_idx)
+{
+    gpgme_ctx_t ctx = get_gpgme_ctx();
+    gpgme_error_t err;
+    gpgme_data_t out = NULL;
+    gpgme_key_t key = NULL;
+    FB::VariantMap response;
+
+    if (uid_idx < 1) {
+        response["error"] = true;
+        response["result"] = "UID index is always above zero, something is amiss...";
+        return response;
+    }
+
+    current_uid = i_to_str(uid_idx);
+
+    edit_status = "";
+
+    err = gpgme_op_keylist_start (ctx, keyid.c_str(), 0);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_op_keylist_next (ctx, &key);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_op_keylist_end (ctx);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_data_new (&out);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_op_edit (ctx, key, edit_fnc_delete_uid, out, out);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+
+    current_uid = "0";
+
+    gpgme_data_release (out);
+    gpgme_key_unref (key);
+    gpgme_release (ctx);
+
+    response["error"] = false;
+    response["edit_status"] = edit_status;
+    response["result"] = "UID deleted";
+
+    return response;
+}
+
+FB::variant webpgPluginAPI::gpgSetPrimaryUID(const std::string& keyid, long uid_idx)
+{
+    gpgme_ctx_t ctx = get_gpgme_ctx();
+    gpgme_error_t err;
+    gpgme_data_t out = NULL;
+    gpgme_key_t key = NULL;
+    FB::VariantMap response;
+
+    if (uid_idx < 1) {
+        response["error"] = true;
+        response["result"] = "UID index is always above zero, something is amiss...";
+        return response;
+    }
+
+    current_uid = i_to_str(uid_idx);
+
+    edit_status = "";
+
+    err = gpgme_op_keylist_start (ctx, keyid.c_str(), 0);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_op_keylist_next (ctx, &key);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_op_keylist_end (ctx);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_data_new (&out);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_op_edit (ctx, key, edit_fnc_set_primary_uid, out, out);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+
+    current_uid = "0";
+
+    gpgme_data_release (out);
+    gpgme_key_unref (key);
+    gpgme_release (ctx);
+
+    response["error"] = false;
+    response["edit_status"] = edit_status;
+    response["result"] = "Primary UID changed";
+
+    return response;
+}
+
+FB::variant webpgPluginAPI::gpgSetKeyExpire(const std::string& keyid, long key_idx, long expire)
+{
+    gpgme_ctx_t ctx = get_gpgme_ctx();
+    gpgme_error_t err;
+    gpgme_data_t out = NULL;
+    gpgme_key_t key = NULL;
+    FB::VariantMap response;
+
+    key_index = i_to_str(key_idx);
+    expiration = i_to_str(expire);
+
+    edit_status = "";
+
+    err = gpgme_op_keylist_start (ctx, keyid.c_str(), 0);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_op_keylist_next (ctx, &key);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_op_keylist_end (ctx);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_data_new (&out);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_op_edit (ctx, key, edit_fnc_set_key_expire, out, out);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+
+    key_index = "";
+    expiration = "";
+
+    gpgme_data_release (out);
+    gpgme_key_unref (key);
+    gpgme_release (ctx);
+
+    response["error"] = false;
+    response["edit_status"] = edit_status;
+    response["result"] = "Expiration changed";
+
+    return response;
+}
+
+FB::variant webpgPluginAPI::gpgSetPubkeyExpire(const std::string& keyid, long expire) {
+    return webpgPluginAPI::gpgSetKeyExpire(keyid, 0, expire);
+}
+
+
+FB::variant webpgPluginAPI::gpgSetSubkeyExpire(const std::string& keyid, long key_idx, long expire) {
+    return webpgPluginAPI::gpgSetKeyExpire(keyid, key_idx, expire);
 }
 
 // Read-only property version

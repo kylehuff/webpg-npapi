@@ -72,6 +72,13 @@ public:
     FB::variant gpgDeletePublicKey(const std::string& keyid);
     FB::variant gpgDeletePrivateKey(const std::string& keyid);
     FB::variant gpgSetKeyTrust(const std::string& keyid, long trust_level);
+    FB::variant gpgAddUID(const std::string& keyid, const std::string& name,
+        const std::string& email, const std::string& comment);
+    FB::variant gpgDeleteUID(const std::string& keyid, long uid_idx);
+    FB::variant gpgSetPrimaryUID(const std::string& keyid, long uid_idx);
+    FB::variant gpgSetKeyExpire(const std::string& keyid, long key_idx, long expire);
+    FB::variant gpgSetPubkeyExpire(const std::string& keyid, long expire);
+    FB::variant gpgSetSubkeyExpire(const std::string& keyid, long key_idx, long expire);
 
     std::string get_version();
     bool gpgconf_detected();

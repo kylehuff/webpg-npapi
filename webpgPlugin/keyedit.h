@@ -5,6 +5,9 @@
 #include <stdlib.h>
 #include <iostream>
 
+// A global holder for the current edit_fnc status
+std::string edit_status;
+
 /* Global variables for the handling of UID signing or
     deleting signatures on UIDs */
 
@@ -17,8 +20,25 @@ std::string current_sig;
 // trust value to assign
 std::string trust_assignment;
 
+// uid name to create
+std::string genuid_name;
+
+// uid email to assign
+std::string genuid_email;
+
+// uid comment to assign
+std::string genuid_comment;
+
 // Used as iter count for current signature index
 static int signature_iter = 1;
+
+// Used to store the index for the key/subkey
+//  0: Public Key
+//  1 &>: Subkeys
+std::string key_index;
+
+// Used to store the value for the new expiration
+std::string expiration;
 
 // Used to keep track of the current edit iteration
 static int step = 0;
@@ -42,6 +62,7 @@ edit_fnc_sign (void *opaque, gpgme_status_code_t status, const char *args, int f
 
     if (fd >= 0) {
         if (!strcmp (args, "keyedit.prompt")) {
+            static int step = 0;
 
             switch (step) {
                 case 0:
@@ -297,6 +318,282 @@ edit_fnc_assign_trust (void *opaque, gpgme_status_code_t status, const char *arg
         } else if (!strcmp (args, "passphrase.enter")) {
             response = (char *) "";
         } else {
+        	fprintf (stdout, "We shouldn't reach this line actually; Line: %i\n", __LINE__);
+        }
+    }
+
+    if (response) {
+#ifdef HAVE_W32_SYSTEM
+        DWORD written;
+        WriteFile ((HANDLE) fd, response, strlen (response), &written, 0);
+        WriteFile ((HANDLE) fd, "\n", 1, &written, 0);
+#else
+        ssize_t write_result;
+        write_result = write (fd, response, strlen (response));
+        write_result = write (fd, "\n", 1);
+#endif
+    }
+    return 0;
+}
+
+gpgme_error_t
+edit_fnc_add_uid (void *opaque, gpgme_status_code_t status, const char *args, int fd)
+{
+  /* this creates a new UID for the given Key
+        the strings genuid_name, genuid_email and genuid_comment must be populated before calling this method */
+
+    char *response = NULL;
+
+    if (fd >= 0) {
+        if (!strcmp (args, "keyedit.prompt")) {
+            static int step = 0;
+
+            switch (step) {
+                case 0:
+                    edit_status = edit_status + " " + args + " case 0;";
+                    response = (char *) "adduid";
+                    break;
+
+                case 1:
+                    edit_status = edit_status + " " + args + " case 1;";
+                    step = -1;
+                	response = (char *) "quit";
+                	break;
+
+                default:
+                    edit_status = edit_status + " " + args + " case default, step-count: ?;";
+                    step = -1;
+                    response = (char *) "quit";
+                    break;
+            }
+            step++;
+        } else if (!strcmp (args, "keygen.name")) {
+            response = (char *) genuid_name.c_str();
+            edit_status = edit_status + " " + args + ";";
+        } else if (!strcmp (args, "keygen.email")) {
+            if (strlen (genuid_email.c_str()) > 1) {
+                response = (char *) genuid_email.c_str();
+            } else {
+                response = (char *) "";
+            }
+            edit_status = edit_status + " " + args + ";";
+        } else if (!strcmp (args, "keygen.comment")) {
+            if (strlen (genuid_comment.c_str()) > 1) {
+                response = (char *) genuid_comment.c_str();
+            } else {
+                response = (char *) "";
+            }
+            edit_status = edit_status + " " + args + ";";
+        } else if (!strcmp (args, "keyedit.save.okay")) {
+            response = (char *) "Y";
+            edit_status = edit_status + " " + args + ";";
+            step = 0;
+        } else if (!strcmp (args, "passphrase.enter")) {
+            response = (char *) "";
+            edit_status = edit_status + " " + args + ";";
+        } else {
+            edit_status = edit_status + " " + args + "never.here;";
+        	fprintf (stdout, "We shouldn't reach this line actually; Line: %i\n", __LINE__);
+        }
+    }
+
+    if (response) {
+#ifdef HAVE_W32_SYSTEM
+        DWORD written;
+        WriteFile ((HANDLE) fd, response, strlen (response), &written, 0);
+        WriteFile ((HANDLE) fd, "\n", 1, &written, 0);
+#else
+        ssize_t write_result;
+        write_result = write (fd, response, strlen (response));
+        write_result = write (fd, "\n", 1);
+#endif
+    }
+    return 0;
+}
+
+gpgme_error_t
+edit_fnc_delete_uid (void *opaque, gpgme_status_code_t status, const char *args, int fd)
+{
+  /* this deletes a UID for the given Key
+        the string current_uid must be populated before calling this method */
+
+    char *response = NULL;
+
+    if (fd >= 0) {
+        if (!strcmp (args, "keyedit.prompt")) {
+            static int step = 0;
+
+            switch (step) {
+                case 0:
+                    edit_status = edit_status + " " + args + " case 0;";
+                    response = (char *) current_uid.c_str();
+                    break;
+
+                case 1:
+                    edit_status = edit_status + " " + args + " case 1;";
+                	response = (char *) "deluid";
+                	break;
+
+                case 2:
+                    edit_status = edit_status + " " + args + " case 2;";
+                	response = (char *) "quit";
+                	step = -1;
+                	break;
+
+                default:
+                    edit_status = edit_status + " " + args + " case default, step-count: ?;";
+                    step = -1;
+                    response = (char *) "quit";
+                    break;
+            }
+            step++;
+        } else if (!strcmp (args, "keyedit.remove.uid.okay")) {
+            response = (char *) "Y";
+            edit_status = edit_status + " " + args + ";";
+        } else if (!strcmp (args, "keyedit.save.okay")) {
+            response = (char *) "Y";
+            edit_status = edit_status + " " + args + ";";
+            step = 0;
+        } else if (!strcmp (args, "passphrase.enter")) {
+            response = (char *) "";
+            edit_status = edit_status + " " + args + ";";
+        } else {
+            edit_status = edit_status + " " + args + "never.here;";
+        	fprintf (stdout, "We shouldn't reach this line actually; Line: %i\n", __LINE__);
+        }
+    }
+
+    if (response) {
+#ifdef HAVE_W32_SYSTEM
+        DWORD written;
+        WriteFile ((HANDLE) fd, response, strlen (response), &written, 0);
+        WriteFile ((HANDLE) fd, "\n", 1, &written, 0);
+#else
+        ssize_t write_result;
+        write_result = write (fd, response, strlen (response));
+        write_result = write (fd, "\n", 1);
+#endif
+    }
+    return 0;
+}
+
+gpgme_error_t
+edit_fnc_set_primary_uid (void *opaque, gpgme_status_code_t status, const char *args, int fd)
+{
+  /* this sets a given UID as the primary for the key
+        the string current_uid must be populated before calling this method */
+
+    char *response = NULL;
+
+    if (fd >= 0) {
+        if (!strcmp (args, "keyedit.prompt")) {
+            static int step = 0;
+
+            switch (step) {
+                case 0:
+                    edit_status = edit_status + " " + args + " case 0;";
+                    response = (char *) current_uid.c_str();
+                    break;
+
+                case 1:
+                    edit_status = edit_status + " " + args + " case 1;";
+                	response = (char *) "primary";
+                	break;
+
+                case 2:
+                    edit_status = edit_status + " " + args + " case 2;";
+                	response = (char *) "quit";
+                	step = -1;
+                	break;
+
+                default:
+                    edit_status = edit_status + " " + args + " case default, step-count: ?;";
+                    step = -1;
+                    response = (char *) "quit";
+                    break;
+            }
+            step++;
+        } else if (!strcmp (args, "keyedit.remove.uid.okay")) {
+            response = (char *) "Y";
+            edit_status = edit_status + " " + args + ";";
+        } else if (!strcmp (args, "keyedit.save.okay")) {
+            response = (char *) "Y";
+            edit_status = edit_status + " " + args + ";";
+            step = 0;
+        } else if (!strcmp (args, "passphrase.enter")) {
+            response = (char *) "";
+            edit_status = edit_status + " " + args + ";";
+        } else {
+            edit_status = edit_status + " " + args + "never.here;";
+        	fprintf (stdout, "We shouldn't reach this line actually; Line: %i\n", __LINE__);
+        }
+    }
+
+    if (response) {
+#ifdef HAVE_W32_SYSTEM
+        DWORD written;
+        WriteFile ((HANDLE) fd, response, strlen (response), &written, 0);
+        WriteFile ((HANDLE) fd, "\n", 1, &written, 0);
+#else
+        ssize_t write_result;
+        write_result = write (fd, response, strlen (response));
+        write_result = write (fd, "\n", 1);
+#endif
+    }
+    return 0;
+}
+
+gpgme_error_t
+edit_fnc_set_key_expire (void *opaque, gpgme_status_code_t status, const char *args, int fd)
+{
+  /* this sets the expiration for a given key
+        the strings key_index and expiration must be populated before calling this method */
+
+    char *response = NULL;
+    std::string cmd;
+
+    if (fd >= 0) {
+        if (!strcmp (args, "keyedit.prompt")) {
+            static int step = 0;
+
+            switch (step) {
+                case 0:
+                    edit_status = edit_status + " " + args + " case 0;";
+                    cmd = "key ";
+                    cmd += key_index;
+                    response = (char *) cmd.c_str();
+                    break;
+
+                case 1:
+                    edit_status = edit_status + " " + args + " case 1;";
+                	response = (char *) "expire";
+                	break;
+
+                case 2:
+                    edit_status = edit_status + " " + args + " case 2;";
+                	response = (char *) "quit";
+                	step = -1;
+                	break;
+
+                default:
+                    edit_status = edit_status + " " + args + " case default, step-count: ?;";
+                    step = -1;
+                    response = (char *) "quit";
+                    break;
+            }
+            step++;
+        } else if (!strcmp (args, "keygen.valid")) {
+            response = (char *) expiration.c_str();
+            edit_status = edit_status + " " + args + ";";
+        } else if (!strcmp (args, "keyedit.save.okay")) {
+            response = (char *) "Y";
+            edit_status = edit_status + " " + args + ";";
+            step = 0;
+        } else if (!strcmp (args, "passphrase.enter")) {
+            response = (char *) "";
+            edit_status = edit_status + " " + args + ";";
+        } else {
+            edit_status = edit_status + " " + args + "never.here;";
         	fprintf (stdout, "We shouldn't reach this line actually; Line: %i\n", __LINE__);
         }
     }
