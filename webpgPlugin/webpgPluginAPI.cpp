@@ -609,6 +609,7 @@ FB::variant webpgPluginAPI::gpgDecrypt(const std::string& data)
     FB::VariantMap response;
     char *agent_info;
     int nsigs;
+    int tnsigs = 0;
 
     agent_info = getenv("GPG_AGENT_INFO");
 
@@ -650,19 +651,9 @@ FB::variant webpgPluginAPI::gpgDecrypt(const std::string& data)
         }
     }
 
-    size_t out_size = 0;
-    out_buf = gpgme_data_release_and_get_mem (out, &out_size);
-    /* strip the size_t data out of the output buffer */
-    out_buf = out_buf.substr(0, out_size);
-    response["data"] = out_buf;
-
-    /* set the output object to NULL since it has
-        already been released */
-    out = NULL;
-    out_buf = "";
-
     FB::VariantMap signatures;
     if (verify_result->signatures) {
+        tnsigs = 0;
         for (nsigs=0, sig=verify_result->signatures; sig; sig = sig->next, nsigs++) {
             FB::VariantMap signature;
             signature["fingerprint"] = nonnull (sig->fpr);
@@ -681,8 +672,26 @@ FB::variant webpgPluginAPI::gpgDecrypt(const std::string& data)
                     gpg_err_code (sig->status) == GPG_ERR_SIG_EXPIRED? "GOOD_EXPSIG":
                     gpg_err_code (sig->status) == GPG_ERR_KEY_EXPIRED? "GOOD_EXPKEY": "INVALID";
             signatures[i_to_str(nsigs)] = signature;
+            tnsigs++;
         }
     }
+
+    if (err != GPG_ERR_NO_ERROR && tnsigs < 1) {
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+    }
+
+    size_t out_size = 0;
+    out_buf = gpgme_data_release_and_get_mem (out, &out_size);
+
+    /* strip the size_t data out of the output buffer */
+    out_buf = out_buf.substr(0, out_size);
+    response["data"] = out_buf;
+
+    /* set the output object to NULL since it has
+        already been released */
+    out = NULL;
+    out_buf = "";
+
     response["signatures"] = signatures;
     response["error"] = false;
     gpgme_data_release (in);
@@ -1382,6 +1391,6 @@ FB::variant webpgPluginAPI::gpgSetSubkeyExpire(const std::string& keyid, long ke
 // Read-only property version
 std::string webpgPluginAPI::get_version()
 {
-    return "0.1.0b";
+    return "0.1.18b";
 }
 
