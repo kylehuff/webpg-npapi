@@ -201,9 +201,6 @@ edit_fnc_disable (void *opaque, gpgme_status_code_t status, const char *args, in
                 case 0:
                     response = (char *) "disable";
                     break;
-                case 1:
-                	response = (char *) "disable";
-                	break;
 
                 default:
                     step = 0;
@@ -248,9 +245,6 @@ edit_fnc_enable (void *opaque, gpgme_status_code_t status, const char *args, int
                 case 0:
                     response = (char *) "enable";
                     break;
-                case 1:
-                	response = (char *) "enable";
-                	break;
 
                 default:
                     step = 0;
@@ -264,6 +258,7 @@ edit_fnc_enable (void *opaque, gpgme_status_code_t status, const char *args, int
             response = (char *) "";
         } else {
         	fprintf (stdout, "We shouldn't reach this line actually; Line: %i\n", __LINE__);
+        	return 1;
         }
     }
 
@@ -296,9 +291,6 @@ edit_fnc_assign_trust (void *opaque, gpgme_status_code_t status, const char *arg
                 case 0:
                     response = (char *) "trust";
                     break;
-                case 1:
-                	response = (char *) "trust";
-                	break;
 
                 default:
                     step = 0;
@@ -319,6 +311,7 @@ edit_fnc_assign_trust (void *opaque, gpgme_status_code_t status, const char *arg
             response = (char *) "";
         } else {
         	fprintf (stdout, "We shouldn't reach this line actually; Line: %i\n", __LINE__);
+        	return 1;
         }
     }
 
