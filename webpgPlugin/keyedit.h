@@ -202,6 +202,10 @@ edit_fnc_disable (void *opaque, gpgme_status_code_t status, const char *args, in
                     response = (char *) "disable";
                     break;
 
+                case 1:
+                    response = (char *) "disable";
+                    break;
+
                 default:
                     step = 0;
                     response = (char *) "quit";
@@ -243,6 +247,10 @@ edit_fnc_enable (void *opaque, gpgme_status_code_t status, const char *args, int
 
             switch (step) {
                 case 0:
+                    response = (char *) "enable";
+                    break;
+
+                case 1:
                     response = (char *) "enable";
                     break;
 
