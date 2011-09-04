@@ -30,7 +30,10 @@ std::string genuid_email;
 std::string genuid_comment;
 
 // Used as iter count for current signature index
-static int signature_iter = 1;
+static int signature_iter;
+
+// Used as iter count for current notation/description line
+static int text_line;
 
 // Used to store the index for the key/subkey
 //  0: Public Key
@@ -39,6 +42,21 @@ std::string key_index;
 
 // Used to store the value for the new expiration
 std::string expiration;
+
+// Used to store the type of item to revoke
+std::string revitem;
+
+// Used to store the index of the of the revocation reason
+// 0: No reason specified
+// 1: Key has been compromised
+// 2: Key is superseded
+// 3: Key is no longer used
+// -- UID revocation --
+// 4: User ID is no longer used
+std::string reason_index;
+
+// Used to store the revocation description
+std::string description;
 
 // Used to keep track of the current edit iteration
 static int step = 0;
@@ -587,6 +605,122 @@ edit_fnc_set_key_expire (void *opaque, gpgme_status_code_t status, const char *a
             response = (char *) expiration.c_str();
             edit_status = edit_status + " " + args + ";";
         } else if (!strcmp (args, "keyedit.save.okay")) {
+            response = (char *) "Y";
+            edit_status = edit_status + " " + args + ";";
+            step = 0;
+        } else if (!strcmp (args, "passphrase.enter")) {
+            response = (char *) "";
+            edit_status = edit_status + " " + args + ";";
+        } else {
+            edit_status = edit_status + " " + args + "never.here;";
+        	fprintf (stdout, "We shouldn't reach this line actually; Line: %i\n", __LINE__);
+        }
+    }
+
+    if (response) {
+#ifdef HAVE_W32_SYSTEM
+        DWORD written;
+        WriteFile ((HANDLE) fd, response, strlen (response), &written, 0);
+        WriteFile ((HANDLE) fd, "\n", 1, &written, 0);
+#else
+        ssize_t write_result;
+        write_result = write (fd, response, strlen (response));
+        write_result = write (fd, "\n", 1);
+#endif
+    }
+    return 0;
+}
+
+gpgme_error_t
+edit_fnc_revoke_item (void *opaque, gpgme_status_code_t status, const char *args, int fd)
+{
+  /* this revokes a given key, subkey or uid
+        the global strings revitem, key_index, reason_index and desc_text must be populated
+        before calling this method */
+
+    char *response = NULL;
+    std::string cmd;
+
+    if (!strcmp (revitem.c_str(), "revkey")) {
+            cmd = "key ";
+            cmd += key_index;
+    } else if (!strcmp (revitem.c_str(), "revuid")) {
+            cmd = "uid ";
+            cmd += current_uid;
+    } else if (!strcmp (revitem.c_str(), "revsig")) {
+            cmd = "uid ";
+            cmd += current_uid;
+    }
+
+    if (fd >= 0) {
+        if (!strcmp (args, "keyedit.prompt")) {
+            static int step = 0;
+
+            switch (step) {
+                case 0:
+                    edit_status = edit_status + " " + args + " case 0;";
+                    response = (char *) cmd.c_str();
+                    break;
+
+                case 1:
+                    signature_iter = 0;
+                    text_line = 1;
+                    edit_status = edit_status + " " + args + " case 1;";
+                	response = (char *) revitem.c_str();
+                	break;
+
+                case 2:
+                    edit_status = edit_status + " " + args + " case 2;";
+                	response = (char *) "save";
+                	step = -1;
+                	break;
+
+                default:
+                    edit_status = edit_status + " " + args + " case default, step-count: ?;";
+                    step = -1;
+                    response = (char *) "quit";
+                    break;
+            }
+            step++;
+        } else if (!strcmp (args, "keyedit.revoke.subkey.okay")) {
+            edit_status = edit_status + " " + args + " Y;";
+            response = (char *) "Y";
+        } else if (!strcmp (args, "ask_revoke_sig.one")) {
+            if (signature_iter == atoi(current_sig.c_str())) {
+                edit_status = edit_status + " " + args + " Y;";
+                response = (char *) "Y";
+                current_sig = "0";
+                current_uid = "0";
+                signature_iter = 0;
+            } else {
+                edit_status = edit_status + " " + args + " N - idx = " + current_sig.c_str() + ";";
+                response = (char *) "N";
+            }
+            signature_iter++;
+        } else if (!strcmp (args, "keyedit.revoke.uid.okay")){
+            edit_status = edit_status + " " + args + ";";
+            response = (char *) "Y";
+        } else if (!strcmp (args, "ask_revoke_sig.okay")) {
+            edit_status = edit_status + " " + args + " Y;";
+            response = (char *) "Y";
+        } else if (!strcmp (args, "ask_revocation_reason.code")) {
+            edit_status = edit_status + " " + args + " " + reason_index.c_str() + ";";
+            response = (char *) reason_index.c_str();
+        } else if (!strcmp (args, "ask_revocation_reason.text")) {
+            if (text_line > 1) {
+                edit_status = edit_status + " " + args + "\n;";
+                text_line = 1;
+                response = (char *) "";
+            } else {
+                edit_status = edit_status + " " + args + " " + description.c_str() + ";";
+                text_line++;
+                response = (char *) description.c_str();
+            }
+        } else if (!strcmp (args, "ask_revocation_reason.okay")) {
+            edit_status = edit_status + " " + args + " Y;";
+            response = (char *) "Y";
+        } else if (!strcmp (args, "keyedit.save.okay")) {
+            edit_status = edit_status + " " + args + " Y;";
             response = (char *) "Y";
             edit_status = edit_status + " " + args + ";";
             step = 0;

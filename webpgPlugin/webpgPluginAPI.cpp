@@ -22,7 +22,8 @@
 FB::VariantMap get_error_map(const std::string& method,
                         gpgme_error_t gpg_error_code,
                         const std::string& error_string,
-                        int line, const std::string& file){
+                        int line, const std::string& file)
+{
     FB::VariantMap error_map_obj;
     error_map_obj["error"] = true;
     error_map_obj["method"] = method;
@@ -82,6 +83,9 @@ webpgPluginAPI::webpgPluginAPI(const webpgPluginPtr& plugin, const FB::BrowserHo
     registerMethod("gpgSetSubkeyExpire", make_method(this, &webpgPluginAPI::gpgSetSubkeyExpire));
     registerMethod("gpgSetPubkeyExpire", make_method(this, &webpgPluginAPI::gpgSetPubkeyExpire));
     registerMethod("gpgExportPublicKey", make_method(this, &webpgPluginAPI::gpgExportPublicKey));
+    registerMethod("gpgRevokeKey", make_method(this, &webpgPluginAPI::gpgRevokeKey));
+    registerMethod("gpgRevokeUID", make_method(this, &webpgPluginAPI::gpgRevokeUID));
+    registerMethod("gpgRevokeSignature", make_method(this, &webpgPluginAPI::gpgRevokeSignature));
 
     registerEvent("onkeygenprogress");
     registerEvent("onkeygencomplete");
@@ -132,7 +136,8 @@ webpgPluginPtr webpgPluginAPI::getPlugin()
     return plugin;
 }
 
-void webpgPluginAPI::init(){
+void webpgPluginAPI::init()
+{
     gpgme_ctx_t ctx;
     gpgme_error_t err;
     FB::VariantMap error_map;
@@ -182,7 +187,8 @@ void webpgPluginAPI::init(){
     webpgPluginAPI::gpg_status_map = response;
 };
 
-gpgme_ctx_t webpgPluginAPI::get_gpgme_ctx(){
+gpgme_ctx_t webpgPluginAPI::get_gpgme_ctx()
+{
     gpgme_ctx_t ctx;
     gpgme_error_t err;
 
@@ -199,11 +205,8 @@ gpgme_ctx_t webpgPluginAPI::get_gpgme_ctx(){
     return ctx;
 }
 
-//std::string webpgPluginAPI::get_gpgme_version(){
-//    return webpgPluginAPI::_gpgme_version;
-//}
-
-FB::VariantMap webpgPluginAPI::get_gpg_status(){
+FB::VariantMap webpgPluginAPI::get_gpg_status()
+{
     return webpgPluginAPI::gpg_status_map;
 }
 
@@ -212,7 +215,8 @@ FB::VariantMap webpgPluginAPI::get_gpg_status(){
         returns all keys in the keyring.
     NOTE: This method is not exposed to the NPAPI plugin, it is only called internally
 */
-FB::VariantMap webpgPluginAPI::getKeyList(const std::string& name, int secret_only){
+FB::VariantMap webpgPluginAPI::getKeyList(const std::string& name, int secret_only)
+{
     /* declare variables */
     gpgme_ctx_t ctx = get_gpgme_ctx();
     gpgme_error_t err;
@@ -374,7 +378,8 @@ FB::VariantMap webpgPluginAPI::getKeyList(const std::string& name, int secret_on
         secret_only=0 which returns all Public Keys in the keyring.
 */
 
-FB::VariantMap webpgPluginAPI::getPublicKeyList(){
+FB::VariantMap webpgPluginAPI::getPublicKeyList()
+{
     return webpgPluginAPI::getKeyList("", 0);
 }
 
@@ -384,7 +389,8 @@ FB::VariantMap webpgPluginAPI::getPublicKeyList(){
         the user has the corrisponding secret key.
 */
 
-FB::VariantMap webpgPluginAPI::getPrivateKeyList(){
+FB::VariantMap webpgPluginAPI::getPrivateKeyList()
+{
     return webpgPluginAPI::getKeyList("", 1);
 }
 
@@ -392,7 +398,8 @@ FB::VariantMap webpgPluginAPI::getPrivateKeyList(){
     This method just calls webpgPlugin.getKeyList with a name/email
         as the parameter
 */
-FB::VariantMap webpgPluginAPI::getNamedKey(const std::string& name){
+FB::VariantMap webpgPluginAPI::getNamedKey(const std::string& name)
+{
     return webpgPluginAPI::getKeyList(name, 0);
 }
 
@@ -406,7 +413,8 @@ bool webpgPluginAPI::gpgconf_detected() {
     return true;
 }
 
-std::string webpgPluginAPI::get_preference(const std::string& preference) {
+std::string webpgPluginAPI::get_preference(const std::string& preference)
+{
     gpgme_ctx_t ctx = get_gpgme_ctx();
     gpgme_error_t err;
     gpgme_conf_comp_t conf, comp;
@@ -440,7 +448,8 @@ std::string webpgPluginAPI::get_preference(const std::string& preference) {
 
 }
 
-FB::variant webpgPluginAPI::set_preference(const std::string& preference, const std::string& pref_value) {
+FB::variant webpgPluginAPI::set_preference(const std::string& preference, const std::string& pref_value)
+{
 	gpgme_error_t err;
 	gpgme_protocol_t proto = GPGME_PROTOCOL_OpenPGP;
     err = gpgme_engine_check_version (proto);
@@ -854,7 +863,8 @@ FB::variant webpgPluginAPI::gpgDisableKey(const std::string& keyid)
 
 
 FB::variant webpgPluginAPI::gpgDeleteUIDSign(const std::string& keyid,
-    long uid, long signature) {
+    long uid, long signature)
+{
     gpgme_ctx_t ctx = get_gpgme_ctx();
     gpgme_error_t err;
     gpgme_data_t out = NULL;
@@ -922,7 +932,8 @@ std::string webpgPluginAPI::gpgGenKeyWorker(const std::string& key_type, const s
             int current,
             int total
         )
-    ) {
+    )
+{
 
     gpgme_ctx_t ctx = get_gpgme_ctx();
     gpgme_error_t err;
@@ -1017,7 +1028,8 @@ std::string webpgPluginAPI::gpgGenKey(const std::string& key_type,
     return "queued";
 }
 
-FB::variant webpgPluginAPI::gpgImportKey(const std::string& ascii_key) {
+FB::variant webpgPluginAPI::gpgImportKey(const std::string& ascii_key)
+{
     gpgme_ctx_t ctx = get_gpgme_ctx();
     gpgme_error_t err;
     gpgme_data_t key_buf;
@@ -1066,7 +1078,8 @@ FB::variant webpgPluginAPI::gpgImportKey(const std::string& ascii_key) {
     return status;
 }
 
-FB::variant webpgPluginAPI::gpgDeleteKey(const std::string& keyid, int allow_secret) {
+FB::variant webpgPluginAPI::gpgDeleteKey(const std::string& keyid, int allow_secret)
+{
     gpgme_ctx_t ctx = get_gpgme_ctx();
     gpgme_error_t err;
     gpgme_data_t out = NULL;
@@ -1103,7 +1116,8 @@ FB::variant webpgPluginAPI::gpgDeleteKey(const std::string& keyid, int allow_sec
         which allows it to only delete public Public Keys from the keyring.
 */
 
-FB::variant webpgPluginAPI::gpgDeletePublicKey(const std::string& keyid){
+FB::variant webpgPluginAPI::gpgDeletePublicKey(const std::string& keyid)
+{
     return webpgPluginAPI::gpgDeleteKey(keyid, 0);
 }
 
@@ -1112,7 +1126,8 @@ FB::variant webpgPluginAPI::gpgDeletePublicKey(const std::string& keyid){
         which allows it to delete Private and Public Keys from the keyring.
 */
 
-FB::variant webpgPluginAPI::gpgDeletePrivateKey(const std::string& keyid){
+FB::variant webpgPluginAPI::gpgDeletePrivateKey(const std::string& keyid)
+{
     return webpgPluginAPI::gpgDeleteKey(keyid, 1);
 }
 
@@ -1380,12 +1395,14 @@ FB::variant webpgPluginAPI::gpgSetKeyExpire(const std::string& keyid, long key_i
     return response;
 }
 
-FB::variant webpgPluginAPI::gpgSetPubkeyExpire(const std::string& keyid, long expire) {
+FB::variant webpgPluginAPI::gpgSetPubkeyExpire(const std::string& keyid, long expire)
+{
     return webpgPluginAPI::gpgSetKeyExpire(keyid, 0, expire);
 }
 
 
-FB::variant webpgPluginAPI::gpgSetSubkeyExpire(const std::string& keyid, long key_idx, long expire) {
+FB::variant webpgPluginAPI::gpgSetSubkeyExpire(const std::string& keyid, long key_idx, long expire)
+{
     return webpgPluginAPI::gpgSetKeyExpire(keyid, key_idx, expire);
 }
 
@@ -1424,9 +1441,82 @@ FB::variant webpgPluginAPI::gpgExportPublicKey(const std::string& keyid)
     return response;
 }
 
+FB::variant webpgPluginAPI::gpgRevokeItem(const std::string& keyid, const std::string& item, int key_idx,
+    int uid_idx, int sig_idx, int reason, const std::string& desc)
+{
+
+    gpgme_ctx_t ctx = get_gpgme_ctx();
+    gpgme_error_t err;
+    gpgme_data_t out = NULL;
+    gpgme_key_t key = NULL;
+    FB::VariantMap response;
+
+    key_index = i_to_str(key_idx);
+    current_uid = i_to_str(uid_idx);
+    current_sig = i_to_str(sig_idx);
+    revitem = item.c_str();
+    reason_index = i_to_str(reason);
+    description = desc.c_str();
+
+    edit_status = "";
+
+    err = gpgme_op_keylist_start (ctx, keyid.c_str(), 0);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_op_keylist_next (ctx, &key);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_op_keylist_end (ctx);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_data_new (&out);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_op_edit (ctx, key, edit_fnc_revoke_item, out, out);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+
+    key_index = "";
+    reason_index = "";
+    current_uid = "";
+
+    gpgme_data_release (out);
+    gpgme_key_unref (key);
+    gpgme_release (ctx);
+
+    response["error"] = false;
+    response["edit_status"] = edit_status;
+    response["result"] = "Item Revoked";
+
+    return response;
+}
+
+FB::variant webpgPluginAPI::gpgRevokeKey(const std::string& keyid, int key_idx, int reason,
+    const std::string &desc)
+{
+    return webpgPluginAPI::gpgRevokeItem(keyid, "revkey", key_idx, 0, 0, reason, desc);
+}
+
+FB::variant webpgPluginAPI::gpgRevokeUID(const std::string& keyid, int uid_idx, int reason,
+    const std::string &desc)
+{
+    return webpgPluginAPI::gpgRevokeItem(keyid, "revuid", 0, uid_idx, 0, reason, desc);
+}
+
+FB::variant webpgPluginAPI::gpgRevokeSignature(const std::string& keyid, int uid_idx, int sig_idx,
+    int reason, const std::string &desc)
+{
+    return webpgPluginAPI::gpgRevokeItem(keyid, "revsig", 0, uid_idx, sig_idx, reason, desc);
+}
+
 // Read-only property version
 std::string webpgPluginAPI::get_version()
 {
-    return "0.2.24";
+    return "0.3.5";
 }
 

@@ -80,6 +80,15 @@ public:
     FB::variant gpgSetPubkeyExpire(const std::string& keyid, long expire);
     FB::variant gpgSetSubkeyExpire(const std::string& keyid, long key_idx, long expire);
     FB::variant gpgExportPublicKey(const std::string& keyid);
+    FB::variant gpgRevokeItem(const std::string& keyid, const std::string& item, int key_idx,
+        int uid_idx, int sig_idx, int reason_idx, const std::string& desc);
+    FB::variant gpgRevokeKey(const std::string& keyid, int key_idx, int reason,
+        const std::string &desc);
+    FB::variant gpgRevokeUID(const std::string& keyid, int uid_idx, int reason,
+        const std::string &desc);
+    FB::variant gpgRevokeSignature(const std::string& keyid, int uid_idx, int sig_idx,
+        int reason, const std::string &desc);
+
 
     std::string get_version();
     bool gpgconf_detected();
