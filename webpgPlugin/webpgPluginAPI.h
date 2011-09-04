@@ -79,6 +79,7 @@ public:
     FB::variant gpgSetKeyExpire(const std::string& keyid, long key_idx, long expire);
     FB::variant gpgSetPubkeyExpire(const std::string& keyid, long expire);
     FB::variant gpgSetSubkeyExpire(const std::string& keyid, long key_idx, long expire);
+    FB::variant gpgExportPublicKey(const std::string& keyid);
 
     std::string get_version();
     bool gpgconf_detected();

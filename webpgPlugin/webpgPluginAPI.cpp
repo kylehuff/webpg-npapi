@@ -81,6 +81,7 @@ webpgPluginAPI::webpgPluginAPI(const webpgPluginPtr& plugin, const FB::BrowserHo
     registerMethod("gpgSetPrimaryUID", make_method(this, &webpgPluginAPI::gpgSetPrimaryUID));
     registerMethod("gpgSetSubkeyExpire", make_method(this, &webpgPluginAPI::gpgSetSubkeyExpire));
     registerMethod("gpgSetPubkeyExpire", make_method(this, &webpgPluginAPI::gpgSetPubkeyExpire));
+    registerMethod("gpgExportPublicKey", make_method(this, &webpgPluginAPI::gpgExportPublicKey));
 
     registerEvent("onkeygenprogress");
     registerEvent("onkeygencomplete");
@@ -1388,9 +1389,44 @@ FB::variant webpgPluginAPI::gpgSetSubkeyExpire(const std::string& keyid, long ke
     return webpgPluginAPI::gpgSetKeyExpire(keyid, key_idx, expire);
 }
 
+FB::variant webpgPluginAPI::gpgExportPublicKey(const std::string& keyid)
+{
+    gpgme_ctx_t ctx = get_gpgme_ctx();
+    gpgme_error_t err;
+    gpgme_data_t out = NULL;
+    FB::variant keydata;
+    FB::VariantMap response;
+
+    err = gpgme_data_new (&out);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_op_export (ctx, keyid.c_str(), 0, out);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    gpgme_data_seek(out, 0, SEEK_SET);
+
+    size_t out_size = 0;
+    std::string out_buf;
+    out_buf = gpgme_data_release_and_get_mem (out, &out_size);
+    /* strip the size_t data out of the output buffer */
+    out_buf = out_buf.substr(0, out_size);
+    /* set the output object to NULL since it has
+        already been released */
+    out = NULL;
+
+    gpgme_release (ctx);
+
+    response["error"] = false;
+    response["result"] = out_buf;
+
+    return response;
+}
+
 // Read-only property version
 std::string webpgPluginAPI::get_version()
 {
-    return "0.1.18b";
+    return "0.2.24";
 }
 
