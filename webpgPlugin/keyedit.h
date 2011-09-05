@@ -746,3 +746,69 @@ edit_fnc_revoke_item (void *opaque, gpgme_status_code_t status, const char *args
     }
     return 0;
 }
+
+gpgme_error_t
+edit_fnc_delete_subkey (void *opaque, gpgme_status_code_t status, const char *args, int fd)
+{
+  /* this works for deleting subkeys */
+    char *response = NULL;
+    std::string cmd;
+        cmd = "key ";
+        cmd += key_index;
+        response = (char *) cmd.c_str();
+    if (fd >= 0) {
+        if (!strcmp (args, "keyedit.prompt")) {
+            static int step = 0;
+
+            switch (step) {
+                case 0:
+                    edit_status = edit_status + " " + args + " case 0;";
+                    cmd = "key ";
+                    cmd += key_index;
+                    response = (char *) cmd.c_str();
+                    break;
+
+                case 1:
+                    edit_status = edit_status + " " + args + " case 0/1;";
+                    cmd = "key ";
+                    cmd += key_index;
+                    response = (char *) cmd.c_str();
+                    break;
+
+                case 2:
+                    edit_status = edit_status + " " + args + " case 1;";
+                    signature_iter = 1;
+                    response = (char *) "delkey";
+                    break;
+
+                default:
+                    edit_status = edit_status + " " + args + " case DEFAULT;";
+                    step = 0;
+                    response = (char *) "quit";
+                    break;
+            }
+            step++;
+        } else if (!strcmp (args, "keyedit.save.okay")) {
+            edit_status = edit_status + " " + args + ";";
+            response = (char *) "Y";
+        } else if (!strcmp (args, "keyedit.remove.subkey.okay")) {
+            edit_status = edit_status + " " + args + ";";
+            response = (char *) "Y";
+        } else if (!strcmp (args, "passphrase.enter")) {
+            response = (char *) "";
+        }
+    }
+
+    if (response) {
+#ifdef HAVE_W32_SYSTEM
+        DWORD written;
+        WriteFile ((HANDLE) fd, response, strlen (response), &written, 0);
+        WriteFile ((HANDLE) fd, "\n", 1, &written, 0);
+#else
+        ssize_t write_result;
+        write_result = write (fd, response, strlen (response));
+        write_result = write (fd, "\n", 1);
+#endif
+    }
+    return 0;
+}

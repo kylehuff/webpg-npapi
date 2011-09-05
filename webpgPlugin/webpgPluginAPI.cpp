@@ -76,6 +76,7 @@ webpgPluginAPI::webpgPluginAPI(const webpgPluginPtr& plugin, const FB::BrowserHo
     registerMethod("gpgImportKey", make_method(this, &webpgPluginAPI::gpgImportKey));
     registerMethod("gpgDeletePublicKey", make_method(this, &webpgPluginAPI::gpgDeletePublicKey));
     registerMethod("gpgDeletePrivateKey", make_method(this, &webpgPluginAPI::gpgDeletePrivateKey));
+    registerMethod("gpgDeletePrivateSubKey", make_method(this, &webpgPluginAPI::gpgDeletePrivateSubKey));
     registerMethod("gpgSetKeyTrust", make_method(this, &webpgPluginAPI::gpgSetKeyTrust));
     registerMethod("gpgAddUID", make_method(this, &webpgPluginAPI::gpgAddUID));
     registerMethod("gpgDeleteUID", make_method(this, &webpgPluginAPI::gpgDeleteUID));
@@ -1129,6 +1130,52 @@ FB::variant webpgPluginAPI::gpgDeletePublicKey(const std::string& keyid)
 FB::variant webpgPluginAPI::gpgDeletePrivateKey(const std::string& keyid)
 {
     return webpgPluginAPI::gpgDeleteKey(keyid, 1);
+}
+
+FB::variant webpgPluginAPI::gpgDeletePrivateSubKey(const std::string& keyid, int key_idx)
+{
+    gpgme_ctx_t ctx = get_gpgme_ctx();
+    gpgme_error_t err;
+    gpgme_data_t out = NULL;
+    gpgme_key_t key = NULL;
+    FB::VariantMap response;
+
+    key_index = i_to_str(key_idx);
+
+    edit_status = "gpgDeletePrivateSubkey(" + keyid + ", " + key_index + ")\n";
+
+    err = gpgme_op_keylist_start (ctx, keyid.c_str(), 0);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_op_keylist_next (ctx, &key);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_op_keylist_end (ctx);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_data_new (&out);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_op_edit (ctx, key, edit_fnc_delete_subkey, out, out);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+
+    key_index = "";
+
+    gpgme_data_release (out);
+    gpgme_key_unref (key);
+    gpgme_release (ctx);
+
+    response["error"] = false;
+    response["edit_status"] = edit_status;
+    response["result"] = "Subkey Delete";
+
+    return response;
 }
 
 FB::variant webpgPluginAPI::gpgSetKeyTrust(const std::string& keyid, long trust_level)

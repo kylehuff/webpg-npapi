@@ -71,6 +71,7 @@ public:
     FB::variant gpgDeleteKey(const std::string& keyid, int allow_secret);
     FB::variant gpgDeletePublicKey(const std::string& keyid);
     FB::variant gpgDeletePrivateKey(const std::string& keyid);
+    FB::variant gpgDeletePrivateSubKey(const std::string& keyid, int key_idx);
     FB::variant gpgSetKeyTrust(const std::string& keyid, long trust_level);
     FB::variant gpgAddUID(const std::string& keyid, const std::string& name,
         const std::string& email, const std::string& comment);
