@@ -227,7 +227,6 @@ FB::VariantMap webpgPluginAPI::getKeyList(const std::string& name, int secret_on
     gpgme_user_id_t uid;
     gpgme_key_sig_t sig;
     gpgme_subkey_t subkey;
-    gpgme_pubkey_algo_t pubkey_algo;
     FB::VariantMap keylist_map;
 
     FB::VariantMap uid_map;
@@ -609,6 +608,33 @@ FB::variant webpgPluginAPI::gpgEncrypt(const std::string& data,
     return response;
 }
 
+gpgme_error_t
+passphrase_cb (void *opaque, const char *uid_hint, const char *passphrase_info,
+	       int last_was_bad, int fd)
+{
+#ifdef HAVE_W32_SYSTEM
+  DWORD written;
+  WriteFile ((HANDLE) fd, "abc\n", 4, &written, 0);
+#else
+  int res;
+  char *pass = "abc\n";
+  int passlen = strlen (pass);
+  int off = 0;
+
+  do
+    {
+      res = write (fd, &pass[off], passlen - off);
+      if (res > 0)
+	off += res;
+    }
+  while (res > 0 && off != passlen);
+
+  return off == passlen ? 0 : gpgme_error_from_errno (errno);
+#endif
+
+  return 0;
+}
+
 FB::variant webpgPluginAPI::gpgDecryptVerify(const std::string& data, int use_agent)
 {
     gpgme_ctx_t ctx = get_gpgme_ctx();
@@ -618,17 +644,28 @@ FB::variant webpgPluginAPI::gpgDecryptVerify(const std::string& data, int use_ag
     gpgme_signature_t sig;
     gpgme_data_t in, out;
     std::string out_buf;
+    std::string envvar;
     FB::VariantMap response;
-    char *agent_info;
     int nsigs;
     int tnsigs = 0;
 
-    agent_info = getenv("GPG_AGENT_INFO");
+#ifdef HAVE_W32_SYSTEM
+    wchar_t *agent_info;
+    GetEnvironmentVariable(TEXT("GPG_AGENT_INFO"), agent_info, 4096);
+#else
+    char *agent_info = getenv("GPG_AGENT_INFO");
+#endif
 
     if (use_agent == 0) {
         // Set the GPG_AGENT_INFO to null because the user shouldn't be bothered with for
         //  a passphrase if we get a chunk of encrypted data by mistake.
-        setenv("GPG_AGENT_INFO", "", 1);
+#ifdef HAVE_W32_SYSTEM
+        SetEnvironmentVariable(TEXT("GPG_AGENT_INFO"), TEXT("SOMETHINGINVALID"));
+        gpgme_set_passphrase_cb (ctx, passphrase_cb, NULL);
+#else
+        envvar = "GPG_AGENT_INFO=SOMETHINGINVALID";
+        putenv(strdup(envvar.c_str()));
+#endif
     }
 
     err = gpgme_data_new_from_mem (&in, data.c_str(), data.length(), 0);
@@ -649,7 +686,14 @@ FB::variant webpgPluginAPI::gpgDecryptVerify(const std::string& data, int use_ag
     if (use_agent == 0) {
         // Set the GPG_AGENT_INFO to null because the user shouldn't be bothered with for
         //  a passphrase if we get a chunk of encrypted data by mistake.
-        setenv("GPG_AGENT_INFO", agent_info, 1);
+#ifdef HAVE_W32_SYSTEM
+        SetEnvironmentVariable(TEXT("GPG_AGENT_INFO"), agent_info);
+        gpgme_set_passphrase_cb (ctx, NULL, NULL);
+#else
+        envvar = "GPG_AGENT_INFO=";
+        envvar += agent_info;
+        putenv(strdup(envvar.c_str()));
+#endif
     }
 
     if (err != GPG_ERR_NO_ERROR && !verify_result) {
@@ -700,7 +744,7 @@ FB::variant webpgPluginAPI::gpgDecryptVerify(const std::string& data, int use_ag
         }
     }
 
-    if (err == 11) {
+    if (!nsigs > 0 || err == 11) {
         response["message_type"] = "encrypted_message";
         if (use_agent == 0) {
             response["message_event"] = "auto";
