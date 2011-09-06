@@ -1598,6 +1598,6 @@ FB::variant webpgPluginAPI::gpgRevokeSignature(const std::string& keyid, int uid
 // Read-only property version
 std::string webpgPluginAPI::get_version()
 {
-    return "0.3.5";
+    return "0.3.6";
 }
 
