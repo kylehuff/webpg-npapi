@@ -68,6 +68,7 @@ webpgPluginAPI::webpgPluginAPI(const webpgPluginPtr& plugin, const FB::BrowserHo
     registerMethod("getNamedKey", make_method(this, &webpgPluginAPI::getNamedKey));
     registerMethod("gpgEncrypt", make_method(this, &webpgPluginAPI::gpgEncrypt));
     registerMethod("gpgDecrypt", make_method(this, &webpgPluginAPI::gpgDecrypt));
+    registerMethod("gpgVerify", make_method(this, &webpgPluginAPI::gpgVerify));
     registerMethod("gpgSignUID", make_method(this, &webpgPluginAPI::gpgSignUID));
     registerMethod("gpgEnableKey", make_method(this, &webpgPluginAPI::gpgEnableKey));
     registerMethod("gpgDisableKey", make_method(this, &webpgPluginAPI::gpgDisableKey));
@@ -608,7 +609,7 @@ FB::variant webpgPluginAPI::gpgEncrypt(const std::string& data,
     return response;
 }
 
-FB::variant webpgPluginAPI::gpgDecrypt(const std::string& data)
+FB::variant webpgPluginAPI::gpgDecryptVerify(const std::string& data, int use_agent)
 {
     gpgme_ctx_t ctx = get_gpgme_ctx();
     gpgme_error_t err;
@@ -624,6 +625,12 @@ FB::variant webpgPluginAPI::gpgDecrypt(const std::string& data)
 
     agent_info = getenv("GPG_AGENT_INFO");
 
+    if (use_agent == 0) {
+        // Set the GPG_AGENT_INFO to null because the user shouldn't be bothered with for
+        //  a passphrase if we get a chunk of encrypted data by mistake.
+        setenv("GPG_AGENT_INFO", "", 1);
+    }
+
     err = gpgme_data_new_from_mem (&in, data.c_str(), data.length(), 0);
     if (err != GPG_ERR_NO_ERROR) {
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
@@ -638,6 +645,12 @@ FB::variant webpgPluginAPI::gpgDecrypt(const std::string& data)
 
     decrypt_result = gpgme_op_decrypt_result (ctx);
     verify_result = gpgme_op_verify_result (ctx);
+
+    if (use_agent == 0) {
+        // Set the GPG_AGENT_INFO to null because the user shouldn't be bothered with for
+        //  a passphrase if we get a chunk of encrypted data by mistake.
+        setenv("GPG_AGENT_INFO", agent_info, 1);
+    }
 
     if (err != GPG_ERR_NO_ERROR && !verify_result) {
         // There was an error returned while decrypting;
@@ -687,6 +700,17 @@ FB::variant webpgPluginAPI::gpgDecrypt(const std::string& data)
         }
     }
 
+    if (err == 11) {
+        response["message_type"] = "encrypted_message";
+        if (use_agent == 0) {
+            response["message_event"] = "auto";
+        } else {
+            response["message_event"] = "manual";
+        }
+    } else {
+        response["message_type"] = "signed_message";
+    }
+
     if (err != GPG_ERR_NO_ERROR && tnsigs < 1) {
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
     }
@@ -709,6 +733,16 @@ FB::variant webpgPluginAPI::gpgDecrypt(const std::string& data)
     gpgme_release (ctx);
 
     return response;
+}
+
+FB::variant webpgPluginAPI::gpgDecrypt(const std::string& data)
+{
+    return webpgPluginAPI::gpgDecryptVerify(data, 1);
+}
+
+FB::variant webpgPluginAPI::gpgVerify(const std::string& data)
+{
+    return webpgPluginAPI::gpgDecryptVerify(data, 0);
 }
 
 FB::variant webpgPluginAPI::gpgSignUID(const std::string& keyid, long sign_uid,
