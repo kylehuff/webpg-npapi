@@ -53,7 +53,9 @@ public:
 
     FB::variant gpgEncrypt(const std::string& data, const std::string& enc_to_keyid, 
         const std::string& enc_from_keyid=NULL, const std::string& sign=NULL);
+    FB::variant gpgDecryptVerify(const std::string& data, int use_agent);
     FB::variant gpgDecrypt(const std::string& data);
+    FB::variant gpgVerify(const std::string& data);
     FB::variant gpgSignUID(const std::string& keyid, long uid,
         const std::string& with_keyid, long local_only=NULL, long trust_sign=NULL, 
         long trust_level=NULL);
@@ -94,10 +96,17 @@ public:
     std::string get_version();
     bool gpgconf_detected();
 
+    // void (*gpgme_progress_cb_t)(void *hook, const char *what, int type, int current, int total)
     static void progress_cb(
         void *self, const char *what,
         int type, int current, int total
     );
+
+    // gpgme_error_t (*gpgme_passphrase_cb_t)(void *hook, const char *uid_hint, const char *passphrase_info, int prev_was_bad, int fd)
+//    gpgme_error_t passdefunct_cb(
+//        void *self, const char *uid_hint,
+//        const char *passphrase_info, int prev_was_bad, int fd
+//    );
 
     std::string gpgGenKeyWorker(const std::string& key_type, 
         const std::string& key_length,
