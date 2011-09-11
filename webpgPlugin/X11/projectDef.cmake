@@ -18,7 +18,7 @@ SOURCE_GROUP(X11 FILES ${PLATFORM})
 # use this to add preprocessor definitions
 add_definitions(
     -D_FILE_OFFSET_BITS=64
-    -DCMAKE_BUILD_TYPE=MinSizeRel
+#    -DCMAKE_BUILD_TYPE=MinSizeRel
 )
 
 set (SOURCES
