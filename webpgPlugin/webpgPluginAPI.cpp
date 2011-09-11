@@ -42,13 +42,19 @@ static const char *
       return s? s :"[none]";
     }
 
-/* An inline method to convert an integer to a string */
-inline
-std::string i_to_str(const int &number)
+std::string LoadFileAsString(const std::string& filename)
 {
-   std::ostringstream oss;
-   oss << number;
-   return oss.str();
+    std::ifstream fin(filename.c_str());
+
+    if(!fin)
+    {
+        return "";
+    }
+
+    std::ostringstream oss;
+    oss << fin.rdbuf();
+
+    return oss.str();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -66,6 +72,9 @@ webpgPluginAPI::webpgPluginAPI(const webpgPluginPtr& plugin, const FB::BrowserHo
     registerMethod("getPublicKeyList", make_method(this, &webpgPluginAPI::getPublicKeyList));
     registerMethod("getPrivateKeyList", make_method(this, &webpgPluginAPI::getPrivateKeyList));
     registerMethod("getNamedKey", make_method(this, &webpgPluginAPI::getNamedKey));
+    registerMethod("gpgSetPreference", make_method(this, &webpgPluginAPI::gpgSetPreference));
+    registerMethod("gpgSetHomeDir", make_method(this, &webpgPluginAPI::gpgSetHomeDir));
+    registerMethod("gpgGetHomeDir", make_method(this, &webpgPluginAPI::gpgGetHomeDir));
     registerMethod("gpgEncrypt", make_method(this, &webpgPluginAPI::gpgEncrypt));
     registerMethod("gpgDecrypt", make_method(this, &webpgPluginAPI::gpgDecrypt));
     registerMethod("gpgVerify", make_method(this, &webpgPluginAPI::gpgVerify));
@@ -74,6 +83,7 @@ webpgPluginAPI::webpgPluginAPI(const webpgPluginPtr& plugin, const FB::BrowserHo
     registerMethod("gpgDisableKey", make_method(this, &webpgPluginAPI::gpgDisableKey));
     registerMethod("gpgDeleteUIDSign", make_method(this, &webpgPluginAPI::gpgDeleteUIDSign));
     registerMethod("gpgGenKey", make_method(this, &webpgPluginAPI::gpgGenKey));
+    registerMethod("gpgGenSubKey", make_method(this, &webpgPluginAPI::gpgGenSubKey));
     registerMethod("gpgImportKey", make_method(this, &webpgPluginAPI::gpgImportKey));
     registerMethod("gpgDeletePublicKey", make_method(this, &webpgPluginAPI::gpgDeletePublicKey));
     registerMethod("gpgDeletePrivateKey", make_method(this, &webpgPluginAPI::gpgDeletePrivateKey));
@@ -88,6 +98,11 @@ webpgPluginAPI::webpgPluginAPI(const webpgPluginPtr& plugin, const FB::BrowserHo
     registerMethod("gpgRevokeKey", make_method(this, &webpgPluginAPI::gpgRevokeKey));
     registerMethod("gpgRevokeUID", make_method(this, &webpgPluginAPI::gpgRevokeUID));
     registerMethod("gpgRevokeSignature", make_method(this, &webpgPluginAPI::gpgRevokeSignature));
+    registerMethod("gpgChangePassphrase", make_method(this, &webpgPluginAPI::gpgChangePassphrase));
+
+    registerMethod("setTempGPGOption", make_method(this, &webpgPluginAPI::setTempGPGOption));
+    registerMethod("restoreGPGConfig", make_method(this, &webpgPluginAPI::restoreGPGConfig));
+    registerMethod("getTemporaryPath", make_method(this, &webpgPluginAPI::getTemporaryPath));
 
     registerEvent("onkeygenprogress");
     registerEvent("onkeygencomplete");
@@ -97,12 +112,10 @@ webpgPluginAPI::webpgPluginAPI(const webpgPluginPtr& plugin, const FB::BrowserHo
                      make_property(this,
                         &webpgPluginAPI::get_version));
 
-    // FIXME: This is set on init and never refreshed - however the values may change during runtime
     registerProperty("gpg_status",
                     make_property(this,
                         &webpgPluginAPI::get_gpg_status));
 
-    // FIXME: This is set on init and never refreshed - however the value may change during runtime
     registerProperty("gpgconf_detected",
                      make_property(this,
                         &webpgPluginAPI::gpgconf_detected));
@@ -144,6 +157,8 @@ void webpgPluginAPI::init()
     gpgme_error_t err;
     FB::VariantMap error_map;
     FB::VariantMap response;
+    FB::VariantMap protocol_info;
+    gpgme_engine_info_t engine_info;
 
     /* Initialize the locale environment.
      * The function `gpgme_check_version` must be called before any other
@@ -152,9 +167,9 @@ void webpgPluginAPI::init()
     std::string gpgme_version = (char *) gpgme_check_version(NULL);
     setlocale (LC_ALL, "");
     gpgme_set_locale (NULL, LC_CTYPE, setlocale (LC_CTYPE, NULL));
-    #ifdef LC_MESSAGES
-        gpgme_set_locale (NULL, LC_MESSAGES, setlocale (LC_MESSAGES, NULL));
-    #endif
+#ifdef LC_MESSAGES
+    gpgme_set_locale (NULL, LC_MESSAGES, setlocale (LC_MESSAGES, NULL));
+#endif
     err = gpgme_engine_check_version (GPGME_PROTOCOL_OpenPGP);
     if (err != GPG_ERR_NO_ERROR){
         error_map = get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
@@ -164,17 +179,30 @@ void webpgPluginAPI::init()
     if (err != GPG_ERR_NO_ERROR)
         error_map = get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
 
-    if (ctx)
-        gpgme_release (ctx);
-
+    // Retrieve the GPG_AGENT_INFO environment variable
     char *gpg_agent_info = getenv("GPG_AGENT_INFO");
 
     if (error_map.size()) {
-        //response = error_map;
         response["gpgme_valid"] = false;
     } else {
         response["error"] = false;
         response["gpgme_valid"] = true;
+        response["gpgconf_detected"] = gpgconf_detected();
+        response["gpgme_version"] = gpgme_version;
+        engine_info = gpgme_ctx_get_engine_info (ctx);
+        if (engine_info) {
+            if (engine_info->file_name)
+                protocol_info["file_name"] = (char *) engine_info->file_name;
+            if (engine_info->version)
+                protocol_info["version"] = (char *) engine_info->version;
+            if (engine_info->home_dir)
+                protocol_info["home_dir"] = (char *) engine_info->home_dir;
+            if (engine_info->req_version)
+                protocol_info["req_version"] = (char *) engine_info->req_version;
+            response[(char *) gpgme_get_protocol_name (engine_info->protocol)] = protocol_info;
+        } else {
+            response["OpenPGP"] = get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+        }
     }
 
     if (gpg_agent_info != NULL) {
@@ -183,8 +211,8 @@ void webpgPluginAPI::init()
         response["gpg_agent_info"] = "unknown";
     }
 
-    response["gpgconf_detected"] = gpgconf_detected();
-    response["gpgme_version"] = gpgme_version;
+    if (ctx)
+        gpgme_release (ctx);
 
     webpgPluginAPI::gpg_status_map = response;
 };
@@ -196,9 +224,14 @@ gpgme_ctx_t webpgPluginAPI::get_gpgme_ctx()
 
     setlocale (LC_ALL, "");
     gpgme_set_locale (NULL, LC_CTYPE, setlocale (LC_CTYPE, NULL));
-    #ifdef LC_MESSAGES
-        gpgme_set_locale (NULL, LC_MESSAGES, setlocale (LC_MESSAGES, NULL));
-    #endif
+#ifdef LC_MESSAGES
+    gpgme_set_locale (NULL, LC_MESSAGES, setlocale (LC_MESSAGES, NULL));
+#endif
+
+    // Check the GNUPGHOME variable, if not null, set that
+    if (GNUPGHOME.length()) {
+        putenv(strdup(GNUPGHOME.c_str()));
+    }
 
     err = gpgme_new (&ctx);
     gpgme_set_textmode (ctx, 1);
@@ -207,8 +240,133 @@ gpgme_ctx_t webpgPluginAPI::get_gpgme_ctx()
     return ctx;
 }
 
+std::string webpgPluginAPI::getGPGConfigFilename() {
+    std::string config_path = "";
+
+    if (GNUPGHOME.length() > 10) {
+        config_path = GNUPGHOME.substr(10);
+    } else {
+        char const* home = getenv("HOME");
+        if (home || (home = getenv("USERPROFILE"))) {
+          config_path = home;
+        } else {
+          char const *hdrive = getenv("HOMEDRIVE"),
+            *hpath = getenv("HOMEPATH");
+          assert(hdrive);  // or other error handling
+          assert(hpath);
+          config_path = std::string(hdrive) + hpath;
+        }
+    }
+
+#ifdef HAVE_W32_SYSTEM
+    config_path += "\\Application Data\\gnupg\\gpg.conf";
+#else
+    config_path += "/.gnupg/gpg.conf";
+#endif
+
+    return config_path;
+}
+
+FB::variant webpgPluginAPI::setTempGPGOption(const std::string& option, const std::string& value) {
+
+    std::string result;
+    std::string config_path = webpgPluginAPI::getGPGConfigFilename();
+    std::string tmp_config_path = config_path + "-webpg.save";
+
+    std::string gpgconfigfile = LoadFileAsString(config_path);
+
+    if (gpgconfigfile.length()) {
+        // Test if we already made a backup, if not, make one!
+        std::ifstream tmp_config_exists(tmp_config_path.c_str());
+        if (!tmp_config_exists) {
+            // Backup the current contents
+            std::ofstream tmp_file(tmp_config_path.c_str());
+            if (!tmp_file)
+                return "error opening temp_file";
+            tmp_file << gpgconfigfile;
+            tmp_file.close();
+        }
+
+        gpgconfigfile += option;
+        if (value.length())
+            gpgconfigfile += " " + value;
+        gpgconfigfile += "\n";
+
+        std::ofstream gpg_file(config_path.c_str());
+        if (!gpg_file)
+            return "error writing gpg_file";
+        gpg_file << gpgconfigfile;
+        gpg_file.close();
+    }
+
+    if (gpgconfigfile.length())
+        result = "Set ";
+    else
+        result = "Unable to set ";
+
+    if (value.length())
+        result += "'" + option + " = " + value + "' in file: " + config_path;
+    else
+        result += "'" + option + "' in file: " + config_path;
+
+    return result;
+}
+
+FB::variant webpgPluginAPI::restoreGPGConfig() {
+
+    std::string config_path = getGPGConfigFilename();
+    std::string tmp_config_path = config_path + "-webpg.save";
+
+    std::string restore_string;
+    std::string result = "gpg config restored from memory";
+
+    if (!original_gpg_config.length()) {
+        // We don't have the original file in memory, lets restore the backup
+        original_gpg_config = LoadFileAsString(tmp_config_path);
+        if (!original_gpg_config.length())
+            return "error restoring gpg_file from disk";
+        result = "gpg config restored from disk.";
+    }
+
+    std::ofstream gpg_file(config_path.c_str());
+
+    if (!gpg_file)
+        return "error restoring gpg_file from memory";
+
+    gpg_file << original_gpg_config;
+    gpg_file.close();
+
+    remove(tmp_config_path.c_str());
+    original_gpg_config = "";
+
+    return result;
+}
+
+FB::variant webpgPluginAPI::gpgSetHomeDir(const std::string& gnupg_path)
+{
+    GNUPGHOME = "GNUPGHOME=" + gnupg_path;
+    return GNUPGHOME;
+}
+
+FB::variant webpgPluginAPI::gpgGetHomeDir()
+{
+    return GNUPGHOME;
+}
+
+FB::variant webpgPluginAPI::getTemporaryPath()
+{
+    char *gnupghome_envvar = getenv("TEMP");
+    if (gnupghome_envvar != NULL) {
+        return gnupghome_envvar;
+    } else {
+        return "";
+    }
+}
+
 FB::VariantMap webpgPluginAPI::get_gpg_status()
 {
+    webpgPluginAPI::init();
+    webpgPluginAPI::gpg_status_map["edit_status"] = edit_status;
     return webpgPluginAPI::gpg_status_map;
 }
 
@@ -422,8 +580,6 @@ std::string webpgPluginAPI::get_preference(const std::string& preference)
     gpgme_conf_opt_t opt;
     std::string return_value;
 
-    err = gpgme_engine_check_version (GPGME_PROTOCOL_GPGCONF);
-
     err = gpgme_op_conf_load (ctx, &conf);
 
     comp = conf;
@@ -449,7 +605,7 @@ std::string webpgPluginAPI::get_preference(const std::string& preference)
 
 }
 
-FB::variant webpgPluginAPI::set_preference(const std::string& preference, const std::string& pref_value)
+FB::variant webpgPluginAPI::gpgSetPreference(const std::string& preference, const std::string& pref_value)
 {
 	gpgme_error_t err;
 	gpgme_protocol_t proto = GPGME_PROTOCOL_OpenPGP;
@@ -469,7 +625,10 @@ FB::variant webpgPluginAPI::set_preference(const std::string& preference, const 
     gpgme_conf_arg_t original_arg, arg;
     gpgme_conf_opt_t opt;
 
-    err = gpgme_conf_arg_new (&arg, GPGME_CONF_STRING, (char *) pref_value.c_str());
+    if (pref_value.length())
+        err = gpgme_conf_arg_new (&arg, GPGME_CONF_STRING, (char *) pref_value.c_str());
+    else
+        err = gpgme_conf_arg_new (&arg, GPGME_CONF_STRING, NULL);
 
     if (err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
@@ -480,8 +639,13 @@ FB::variant webpgPluginAPI::set_preference(const std::string& preference, const 
 
     if (comp) {
         opt = comp->options;
+
         while (opt && strcmp (opt->name, (char *) preference.c_str())){
             opt = opt->next;
+        }
+
+        if (!opt) {
+            return "unable to locate that option in this context";
         }
 
         if (opt->value) {
@@ -502,6 +666,7 @@ FB::variant webpgPluginAPI::set_preference(const std::string& preference, const 
                 err = gpgme_conf_opt_change (opt, 0, NULL);
             else
                 err = gpgme_conf_opt_change (opt, 0, arg);
+
             if (err != GPG_ERR_NO_ERROR)
                 return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
 
@@ -608,36 +773,9 @@ FB::variant webpgPluginAPI::gpgEncrypt(const std::string& data,
     return response;
 }
 
-gpgme_error_t
-passphrase_cb (void *opaque, const char *uid_hint, const char *passphrase_info,
-	       int last_was_bad, int fd)
-{
-#ifdef HAVE_W32_SYSTEM
-  DWORD written;
-  WriteFile ((HANDLE) fd, "abc\n", 4, &written, 0);
-#else
-  int res;
-  char *pass = "abc\n";
-  int passlen = strlen (pass);
-  int off = 0;
-
-  do
-    {
-      res = write (fd, &pass[off], passlen - off);
-      if (res > 0)
-	off += res;
-    }
-  while (res > 0 && off != passlen);
-
-  return off == passlen ? 0 : gpgme_error_from_errno (errno);
-#endif
-
-  return 0;
-}
-
 FB::variant webpgPluginAPI::gpgDecryptVerify(const std::string& data, int use_agent)
 {
-    gpgme_ctx_t ctx = get_gpgme_ctx();
+    gpgme_ctx_t ctx;
     gpgme_error_t err;
     gpgme_decrypt_result_t decrypt_result;
     gpgme_verify_result_t verify_result;
@@ -649,24 +787,21 @@ FB::variant webpgPluginAPI::gpgDecryptVerify(const std::string& data, int use_ag
     int nsigs;
     int tnsigs = 0;
 
-#ifdef HAVE_W32_SYSTEM
-    wchar_t *agent_info;
-    GetEnvironmentVariable(TEXT("GPG_AGENT_INFO"), agent_info, 4096);
-#else
     char *agent_info = getenv("GPG_AGENT_INFO");
-#endif
 
     if (use_agent == 0) {
         // Set the GPG_AGENT_INFO to null because the user shouldn't be bothered with for
         //  a passphrase if we get a chunk of encrypted data by mistake.
 #ifdef HAVE_W32_SYSTEM
-        SetEnvironmentVariable(TEXT("GPG_AGENT_INFO"), TEXT("SOMETHINGINVALID"));
-        gpgme_set_passphrase_cb (ctx, passphrase_cb, NULL);
+        setTempGPGOption("no-default-keyring", "");
+        setTempGPGOption("secret-keyring", "/dev/null");
 #else
-        envvar = "GPG_AGENT_INFO=SOMETHINGINVALID";
+        envvar = "GPG_AGENT_INFO=INVALID";
         putenv(strdup(envvar.c_str()));
 #endif
     }
+
+    ctx = get_gpgme_ctx();
 
     err = gpgme_data_new_from_mem (&in, data.c_str(), data.length(), 0);
     if (err != GPG_ERR_NO_ERROR) {
@@ -684,12 +819,10 @@ FB::variant webpgPluginAPI::gpgDecryptVerify(const std::string& data, int use_ag
     verify_result = gpgme_op_verify_result (ctx);
 
     if (use_agent == 0) {
-        // Set the GPG_AGENT_INFO to null because the user shouldn't be bothered with for
-        //  a passphrase if we get a chunk of encrypted data by mistake.
 #ifdef HAVE_W32_SYSTEM
-        SetEnvironmentVariable(TEXT("GPG_AGENT_INFO"), agent_info);
-        gpgme_set_passphrase_cb (ctx, NULL, NULL);
+        restoreGPGConfig();
 #else
+        // Restore GPG_AGENT_INFO to its original value
         envvar = "GPG_AGENT_INFO=";
         envvar += agent_info;
         putenv(strdup(envvar.c_str()));
@@ -744,7 +877,7 @@ FB::variant webpgPluginAPI::gpgDecryptVerify(const std::string& data, int use_ag
         }
     }
 
-    if (!nsigs > 0 || err == 11) {
+    if (nsigs < 1 || err == 11) {
         response["message_type"] = "encrypted_message";
         if (use_agent == 0) {
             response["message_event"] = "auto";
@@ -801,7 +934,7 @@ FB::variant webpgPluginAPI::gpgSignUID(const std::string& keyid, long sign_uid,
     current_uid = i_to_str(sign_uid);
 
     /* set the default key to the with_keyid 
-        set_preferences returns the orginal value (if any) of
+        gpgSetPreference returns the orginal value (if any) of
         the 'default-key' configuration parameter. We will put
         this into a variable so we can restore the setting when
         our UID Signing operation is complete (or failed)
@@ -809,7 +942,7 @@ FB::variant webpgPluginAPI::gpgSignUID(const std::string& keyid, long sign_uid,
 
     /* collect the original value so we can restore when done */
     std::string original_value = get_preference("default-key");
-    webpgPluginAPI::set_preference("default-key", 
+    webpgPluginAPI::gpgSetPreference("default-key", 
         (char *) with_keyid.c_str());
 
     gpgme_release (ctx);
@@ -830,7 +963,9 @@ FB::variant webpgPluginAPI::gpgSignUID(const std::string& keyid, long sign_uid,
     if (err != GPG_ERR_NO_ERROR)
         result = get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
 
-    step = 0;
+    edit_status = "gpgSignUID(keyid='" + keyid + "', sign_uid='" + i_to_str(sign_uid) + 
+        "', with_keyid='" + with_keyid + "', local_only='" + i_to_str(local_only) + "', trust_sign='" + 
+        i_to_str(trust_sign) + "', trust_level='" + i_to_str(trust_level) + "');\n";
     err = gpgme_op_edit (ctx, key, edit_fnc_sign, out, out);
     if (err != GPG_ERR_NO_ERROR) {
         if (err == GPGME_STATUS_ALREADY_SIGNED) {
@@ -846,7 +981,7 @@ FB::variant webpgPluginAPI::gpgSignUID(const std::string& keyid, long sign_uid,
 
     /* if the original value was not empty, reset it to the previous value */
     if (strcmp ((char *) original_value.c_str(), "0")) {
-        webpgPluginAPI::set_preference("default-key", original_value);
+        webpgPluginAPI::gpgSetPreference("default-key", original_value);
     }
 
     FB::VariantMap response;
@@ -887,6 +1022,7 @@ FB::variant webpgPluginAPI::gpgEnableKey(const std::string& keyid)
     if (err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
 
+    edit_status = "gpgEnableKey(keyid='" + keyid + "');\n";
     err = gpgme_op_edit (ctx, key, edit_fnc_enable, out, out);
     if (err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
@@ -925,6 +1061,7 @@ FB::variant webpgPluginAPI::gpgDisableKey(const std::string& keyid)
     if (err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
 
+    edit_status = "gpgDisableKey(keyid='" + keyid + "');\n";
     err = gpgme_op_edit (ctx, key, edit_fnc_disable, out, out);
     if (err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
@@ -969,6 +1106,8 @@ FB::variant webpgPluginAPI::gpgDeleteUIDSign(const std::string& keyid,
     if (err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
 
+    edit_status = "gpgDeleteUIDSign(keyid='" + keyid + "', uid='" + i_to_str(uid) + "', signature='" + 
+        i_to_str(signature) + "');\n";
     err = gpgme_op_edit (ctx, key, edit_fnc_delsign, out, out);
     if (err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
@@ -1069,12 +1208,88 @@ std::string webpgPluginAPI::gpgGenKeyWorker(const std::string& key_type, const s
     return "done";
 }
 
+FB::variant webpgPluginAPI::gpgGenSubKeyWorker(const std::string& keyid, const std::string& subkey_type,
+        const std::string& subkey_length, const std::string& subkey_expire, bool sign_flag,
+        bool enc_flag, bool auth_flag, void* APIObj,
+        void(*cb_status)(
+            void *self,
+            const char *what,
+            int type,
+            int current,
+            int total
+        )
+    )
+{
+
+    // Set the option expert so we can access all of the subkey types
+    setTempGPGOption("expert", "");
+
+    gpgme_ctx_t ctx = get_gpgme_ctx();
+    gpgme_error_t err;
+    gpgme_data_t out = NULL;
+    gpgme_key_t key = NULL;
+    FB::VariantMap response;
+
+    gen_subkey_type = subkey_type;
+    gen_subkey_length = subkey_length;
+    gen_subkey_expire = subkey_expire;
+    gen_sign_flag = sign_flag;
+    gen_enc_flag = enc_flag;
+    gen_auth_flag = auth_flag;
+
+    err = gpgme_op_keylist_start (ctx, keyid.c_str(), 0);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_op_keylist_next (ctx, &key);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_op_keylist_end (ctx);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_data_new (&out);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    gpgme_set_progress_cb (ctx, cb_status, APIObj);
+
+    edit_status = "gpgGenSubKeyWorker(keyid='" + keyid + "', subkey_type='" + subkey_type + 
+        "', subkey_length='" + subkey_length + "', subkey_expire='" + subkey_expire + "', sign_flag='" + 
+        i_to_str(sign_flag) + "', enc_flag='" + i_to_str(enc_flag) + "', auth_flag='" + 
+        i_to_str(auth_flag) + "');\n";
+    err = gpgme_op_edit (ctx, key, edit_fnc_add_subkey, out, out);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    gpgme_data_release (out);
+    gpgme_key_unref (key);
+    gpgme_release (ctx);
+
+    // Restore the options to normal
+    restoreGPGConfig();
+
+    const char* status = (char *) "complete";
+    cb_status(APIObj, status, 33, 33, 33);
+    return "done";
+}
+
 void webpgPluginAPI::threaded_gpgGenKey(genKeyParams params)
 {
     std::string result = webpgPluginAPI::gpgGenKeyWorker(params.key_type, params.key_length,
         params.subkey_type, params.subkey_length, params.name_real,
         params.name_comment, params.name_email, params.expire_date,
         params.passphrase, this, &webpgPluginAPI::progress_cb
+    );
+
+}
+
+void webpgPluginAPI::threaded_gpgGenSubKey(genSubKeyParams params)
+{
+    FB::variant result = webpgPluginAPI::gpgGenSubKeyWorker(params.keyid, params.subkey_type,
+        params.subkey_length, params.subkey_expire, params.sign_flag, params.enc_flag,
+        params.auth_flag, this, &webpgPluginAPI::progress_cb
     );
 
 }
@@ -1100,7 +1315,7 @@ std::string webpgPluginAPI::gpgGenKey(const std::string& key_type,
 
     boost::thread genkey_thread(
         boost::bind(
-            &webpgPluginAPI::threadCaller,
+            &webpgPluginAPI::genKeyThreadCaller,
             this, params)
     );
 
@@ -1220,8 +1435,6 @@ FB::variant webpgPluginAPI::gpgDeletePrivateSubKey(const std::string& keyid, int
 
     key_index = i_to_str(key_idx);
 
-    edit_status = "gpgDeletePrivateSubkey(" + keyid + ", " + key_index + ")\n";
-
     err = gpgme_op_keylist_start (ctx, keyid.c_str(), 0);
     if (err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
@@ -1238,6 +1451,8 @@ FB::variant webpgPluginAPI::gpgDeletePrivateSubKey(const std::string& keyid, int
     if (err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
 
+    edit_status = "gpgDeletePrivateSubkey(keyid='" + keyid + "', key_idx='" + i_to_str(key_idx) +
+        "');\n";
     err = gpgme_op_edit (ctx, key, edit_fnc_delete_subkey, out, out);
     if (err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
@@ -1254,6 +1469,29 @@ FB::variant webpgPluginAPI::gpgDeletePrivateSubKey(const std::string& keyid, int
     response["result"] = "Subkey Delete";
 
     return response;
+}
+
+FB::variant webpgPluginAPI::gpgGenSubKey(const std::string& keyid, 
+        const std::string& subkey_type, const std::string& subkey_length,
+        const std::string& subkey_expire, bool sign_flag, bool enc_flag, bool auth_flag)
+{
+
+    genSubKeyParams params;
+
+    params.subkey_type = subkey_type;
+    params.subkey_length = subkey_length;
+    params.subkey_expire = subkey_expire;
+    params.sign_flag = sign_flag;
+    params.enc_flag = enc_flag;
+    params.auth_flag = auth_flag;
+
+    boost::thread genkey_thread(
+        boost::bind(
+            &webpgPluginAPI::genSubKeyThreadCaller,
+            this, params)
+    );
+
+    return "queued";
 }
 
 FB::variant webpgPluginAPI::gpgSetKeyTrust(const std::string& keyid, long trust_level)
@@ -1287,6 +1525,7 @@ FB::variant webpgPluginAPI::gpgSetKeyTrust(const std::string& keyid, long trust_
     if (err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
 
+    edit_status = "gpgSetKeyTrust(keyid='" + keyid + "', trust_level='" + i_to_str(trust_level) + "');\n";
     err = gpgme_op_edit (ctx, key, edit_fnc_assign_trust, out, out);
     if (err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
@@ -1327,8 +1566,6 @@ FB::variant webpgPluginAPI::gpgAddUID(const std::string& keyid, const std::strin
         return response;
     }
 
-    edit_status = "";
-
     err = gpgme_op_keylist_start (ctx, keyid.c_str(), 0);
     if (err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
@@ -1345,6 +1582,8 @@ FB::variant webpgPluginAPI::gpgAddUID(const std::string& keyid, const std::strin
     if (err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
 
+    edit_status = "gpgAddUID(keyid='" + keyid + "', name='" + name + "', email='" + email + 
+        "', comment='" + comment + "');\n";
     err = gpgme_op_edit (ctx, key, edit_fnc_add_uid, out, out);
     if (err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
@@ -1384,8 +1623,6 @@ FB::variant webpgPluginAPI::gpgDeleteUID(const std::string& keyid, long uid_idx)
 
     current_uid = i_to_str(uid_idx);
 
-    edit_status = "";
-
     err = gpgme_op_keylist_start (ctx, keyid.c_str(), 0);
     if (err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
@@ -1402,6 +1639,7 @@ FB::variant webpgPluginAPI::gpgDeleteUID(const std::string& keyid, long uid_idx)
     if (err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
 
+    edit_status = "gpgDeleteUID(keyid='" + keyid + "', uid_idx='" + i_to_str(uid_idx) + "');\n";
     err = gpgme_op_edit (ctx, key, edit_fnc_delete_uid, out, out);
     if (err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
@@ -1436,8 +1674,6 @@ FB::variant webpgPluginAPI::gpgSetPrimaryUID(const std::string& keyid, long uid_
 
     current_uid = i_to_str(uid_idx);
 
-    edit_status = "";
-
     err = gpgme_op_keylist_start (ctx, keyid.c_str(), 0);
     if (err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
@@ -1454,6 +1690,7 @@ FB::variant webpgPluginAPI::gpgSetPrimaryUID(const std::string& keyid, long uid_
     if (err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
 
+    edit_status = "gpgSetPrimaryUID(keyid='" + keyid + "', uid_idx='" + i_to_str(uid_idx) + "');\n";
     err = gpgme_op_edit (ctx, key, edit_fnc_set_primary_uid, out, out);
     if (err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
@@ -1483,8 +1720,6 @@ FB::variant webpgPluginAPI::gpgSetKeyExpire(const std::string& keyid, long key_i
     key_index = i_to_str(key_idx);
     expiration = i_to_str(expire);
 
-    edit_status = "";
-
     err = gpgme_op_keylist_start (ctx, keyid.c_str(), 0);
     if (err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
@@ -1501,6 +1736,8 @@ FB::variant webpgPluginAPI::gpgSetKeyExpire(const std::string& keyid, long key_i
     if (err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
 
+    edit_status = "gpgSetKeyExpire(keyid='" + keyid + "', key_idx='" + i_to_str(key_idx) + 
+        "', expire='" + i_to_str(expire) + "');\n";
     err = gpgme_op_edit (ctx, key, edit_fnc_set_key_expire, out, out);
     if (err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
@@ -1583,7 +1820,6 @@ FB::variant webpgPluginAPI::gpgRevokeItem(const std::string& keyid, const std::s
     reason_index = i_to_str(reason);
     description = desc.c_str();
 
-    edit_status = "";
 
     err = gpgme_op_keylist_start (ctx, keyid.c_str(), 0);
     if (err != GPG_ERR_NO_ERROR)
@@ -1601,6 +1837,9 @@ FB::variant webpgPluginAPI::gpgRevokeItem(const std::string& keyid, const std::s
     if (err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
 
+    edit_status = "gpgRevokeItem(keyid='" + keyid + "', item='" + item + "', key_idx='" + 
+        i_to_str(key_idx) + "', uid_idx='" + i_to_str(uid_idx) + "', sig_idx='" + i_to_str(sig_idx) +
+        "', reason='" + i_to_str(reason) + "', desc='" + desc + "');\n";
     err = gpgme_op_edit (ctx, key, edit_fnc_revoke_item, out, out);
     if (err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
@@ -1639,9 +1878,58 @@ FB::variant webpgPluginAPI::gpgRevokeSignature(const std::string& keyid, int uid
     return webpgPluginAPI::gpgRevokeItem(keyid, "revsig", 0, uid_idx, sig_idx, reason, desc);
 }
 
+FB::variant webpgPluginAPI::gpgChangePassphrase(const std::string& keyid)
+{
+    gpgme_ctx_t ctx = get_gpgme_ctx();
+    gpgme_error_t err;
+    gpgme_data_t out = NULL;
+    gpgme_key_t key = NULL;
+    FB::VariantMap result;
+
+    ctx = get_gpgme_ctx();
+    err = gpgme_op_keylist_start (ctx, keyid.c_str(), 0);
+    if (err != GPG_ERR_NO_ERROR)
+        result = get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_op_keylist_next (ctx, &key);
+    if (err != GPG_ERR_NO_ERROR)
+        result = get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_op_keylist_end (ctx);
+    if (err != GPG_ERR_NO_ERROR)
+        result = get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_data_new (&out);
+    if (err != GPG_ERR_NO_ERROR)
+        result = get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    edit_status = "gpgChangePassphrase(keyid='" + keyid + "');\n";
+    err = gpgme_op_edit (ctx, key, edit_fnc_change_passphrase, out, out);
+    if (err != GPG_ERR_NO_ERROR)
+        result = get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    FB::VariantMap response;
+    if (!key->secret) {
+        response["error"] = true;
+        response["result"] = "no secret";
+    } else {
+        response["error"] = false;
+        response["result"] = "success";
+    }
+
+    gpgme_data_release (out);
+    gpgme_key_unref (key);
+    gpgme_release (ctx);
+
+    if (result.size())
+        return result;
+
+    return response;
+}
+
 // Read-only property version
 std::string webpgPluginAPI::get_version()
 {
-    return "0.3.6";
+    return "0.3.8";
 }
 

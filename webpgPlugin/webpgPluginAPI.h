@@ -6,6 +6,8 @@
 
 #include <string>
 #include <sstream>
+#include <iostream>
+#include <fstream>
 #include <boost/weak_ptr.hpp>
 #include "JSAPIAuto.h"
 #include "BrowserHost.h"
@@ -28,6 +30,16 @@ struct genKeyParams {
     std::string passphrase;
 };
 
+struct genSubKeyParams {
+    std::string keyid;
+    std::string subkey_type;
+    std::string subkey_length;
+    std::string subkey_expire;
+    bool sign_flag;
+    bool enc_flag;
+    bool auth_flag;
+};
+
 
 class webpgPluginAPI : public FB::JSAPIAuto
 {
@@ -48,8 +60,14 @@ public:
     FB::VariantMap getPrivateKeyList();
 
     std::string get_preference(const std::string& preference);
-    FB::variant set_preference(const std::string& preference,
-        const std::string& pref_value);
+    FB::variant gpgSetPreference(const std::string& preference,
+        const std::string& pref_value="");
+    std::string getGPGConfigFilename();
+    FB::variant setTempGPGOption(const std::string& option, const std::string& value=NULL);
+    FB::variant restoreGPGConfig();
+    FB::variant gpgSetHomeDir(const std::string& data);
+    FB::variant gpgGetHomeDir();
+    FB::variant getTemporaryPath();
 
     FB::variant gpgEncrypt(const std::string& data, const std::string& enc_to_keyid, 
         const std::string& enc_from_keyid=NULL, const std::string& sign=NULL);
@@ -69,11 +87,15 @@ public:
             const std::string& name_email, const std::string& expire_date,
             const std::string& passphrase);
     void threaded_gpgGenKey(genKeyParams params);
+    void threaded_gpgGenSubKey(genSubKeyParams params);
     FB::variant gpgImportKey(const std::string& ascii_key);
     FB::variant gpgDeleteKey(const std::string& keyid, int allow_secret);
     FB::variant gpgDeletePublicKey(const std::string& keyid);
     FB::variant gpgDeletePrivateKey(const std::string& keyid);
     FB::variant gpgDeletePrivateSubKey(const std::string& keyid, int key_idx);
+    FB::variant gpgGenSubKey(const std::string& keyid, 
+        const std::string& subkey_type, const std::string& subkey_length,
+        const std::string& subkey_expire, bool sign_flag, bool enc_flag, bool auth_flag);
     FB::variant gpgSetKeyTrust(const std::string& keyid, long trust_level);
     FB::variant gpgAddUID(const std::string& keyid, const std::string& name,
         const std::string& email, const std::string& comment);
@@ -91,10 +113,11 @@ public:
         const std::string &desc);
     FB::variant gpgRevokeSignature(const std::string& keyid, int uid_idx, int sig_idx,
         int reason, const std::string &desc);
-
+    FB::variant gpgChangePassphrase(const std::string& keyid);
 
     std::string get_version();
     bool gpgconf_detected();
+    std::string original_gpg_config;
 
     // void (*gpgme_progress_cb_t)(void *hook, const char *what, int type, int current, int total)
     static void progress_cb(
@@ -129,12 +152,32 @@ public:
         static class method which accepts the calling object as a parameter
             so it can thread a member function
     */
-    static void threadCaller(webpgPluginAPI* api,
+    static void genKeyThreadCaller(webpgPluginAPI* api,
         genKeyParams params)
     {
         api->threaded_gpgGenKey(params);
     };
 
+    FB::variant gpgGenSubKeyWorker(const std::string& keyid, 
+        const std::string& subkey_type,
+        const std::string& subkey_length,
+        const std::string& subkey_expire,
+        bool sign_flag,
+        bool enc_flag,
+        bool auth_flag,
+        void* APIObj, void(*cb_status)(void *self,
+            const char *what,
+            int type,
+            int current,
+            int total
+        )
+    );
+
+    static void genSubKeyThreadCaller(webpgPluginAPI* api,
+        genSubKeyParams params)
+    {
+        api->threaded_gpgGenSubKey(params);
+    };
 
     // Event helpers
     FB_JSAPI_EVENT(fired, 3, (const FB::variant&, bool, int));
