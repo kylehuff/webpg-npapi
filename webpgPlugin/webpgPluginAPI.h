@@ -62,6 +62,7 @@ public:
     std::string get_preference(const std::string& preference);
     FB::variant gpgSetPreference(const std::string& preference,
         const std::string& pref_value="");
+    FB::variant gpgGetPreference(const std::string& preference);
     std::string getGPGConfigFilename();
     FB::variant setTempGPGOption(const std::string& option, const std::string& value=NULL);
     FB::variant restoreGPGConfig();
@@ -74,6 +75,8 @@ public:
     FB::variant gpgDecryptVerify(const std::string& data, int use_agent);
     FB::variant gpgDecrypt(const std::string& data);
     FB::variant gpgVerify(const std::string& data);
+    FB::variant gpgSignText(const FB::VariantList& signers, const std::string& plain_text,
+        int sign_mode);
     FB::variant gpgSignUID(const std::string& keyid, long uid,
         const std::string& with_keyid, long local_only=NULL, long trust_sign=NULL, 
         long trust_level=NULL);
