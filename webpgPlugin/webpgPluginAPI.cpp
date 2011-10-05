@@ -1,6 +1,7 @@
 #include "JSObject.h"
 #include "variant_list.h"
 #include "DOM/Document.h"
+#include "DOM/Window.h"
 
 #include "webpgPluginAPI.h"
 #include "keyedit.h"
@@ -65,6 +66,7 @@ static bool gpgme_invalid = false;
 ///////////////////////////////////////////////////////////////////////////////
 webpgPluginAPI::webpgPluginAPI(const webpgPluginPtr& plugin, const FB::BrowserHostPtr& host) : m_plugin(plugin), m_host(host)
 {
+    //registerMethod("getKeyList", make_method(this, &webpgPluginAPI::getKeyList));
     registerMethod("getPublicKeyList", make_method(this, &webpgPluginAPI::getPublicKeyList));
     registerMethod("getPrivateKeyList", make_method(this, &webpgPluginAPI::getPrivateKeyList));
     registerMethod("getNamedKey", make_method(this, &webpgPluginAPI::getNamedKey));
@@ -546,30 +548,92 @@ FB::VariantMap webpgPluginAPI::getKeyList(const std::string& name, int secret_on
     This method executes webpgPlugin.getKeyList with an empty string and
         secret_only=0 which returns all Public Keys in the keyring.
 */
-
-FB::VariantMap webpgPluginAPI::getPublicKeyList()
+FB::variant webpgPluginAPI::getPublicKeyList()
 {
-    return webpgPluginAPI::getKeyList("", 0);
+    // Retrieve the public keylist as a VariantMap
+    FB::variant public_keylist = webpgPluginAPI::getKeyList("", 0);
+
+    // Retrieve a reference to the DOM Window
+    FB::DOM::WindowPtr window = m_host->getDOMWindow();
+
+    // Check if the DOM Window has an in-build JSON Parser
+    if (window && window->getJSObject()->HasProperty("JSON")) {
+        // Convert the VariantMap to a JSON object
+        Json::Value json_value = FB::variantToJsonValue(public_keylist);
+
+        // Create a writer that will convert the object to a string
+        Json::FastWriter writer;
+
+        // Create a referenec to the JSON object
+        FB::JSObjectPtr obj = window->getProperty<FB::JSObjectPtr>("JSON");
+
+        return obj->Invoke("parse", FB::variant_list_of(writer.write(json_value)));
+    } else {
+        // No JSON parser method present, falling back to return of FB::variant
+        return public_keylist;
+    }
 }
+
 
 /*
     This method executes webpgPlugin.getKeyList with an empty string and
         secret_only=1 which returns all keys in the keyring which
         the user has the corrisponding secret key.
 */
-
-FB::VariantMap webpgPluginAPI::getPrivateKeyList()
+FB::variant webpgPluginAPI::getPrivateKeyList()
 {
-    return webpgPluginAPI::getKeyList("", 1);
+    // Retrieve the public keylist as a VariantMap
+    FB::variant private_keylist = webpgPluginAPI::getKeyList("", 1);
+
+    // Retrieve a reference to the DOM Window
+    FB::DOM::WindowPtr window = m_host->getDOMWindow();
+
+    // Check if the DOM Window has an in-build JSON Parser
+    if (window && window->getJSObject()->HasProperty("JSON")) {
+        // Convert the VariantMap to a JSON object
+        Json::Value json_value = FB::variantToJsonValue(private_keylist);
+
+        // Create a writer that will convert the object to a string
+        Json::FastWriter writer;
+
+        // Create a referenec to the JSON object
+        FB::JSObjectPtr obj = window->getProperty<FB::JSObjectPtr>("JSON");
+
+        return obj->Invoke("parse", FB::variant_list_of(writer.write(json_value)));
+    } else {
+        // No JSON parser method present, falling back to return of FB::variant
+        return private_keylist;
+    }
 }
 
 /* 
     This method just calls webpgPlugin.getKeyList with a name/email
         as the parameter
 */
-FB::VariantMap webpgPluginAPI::getNamedKey(const std::string& name)
+FB::variant webpgPluginAPI::getNamedKey(const std::string& name)
 {
-    return webpgPluginAPI::getKeyList(name, 0);
+    // Retrieve the keylist as a VariantMap
+    FB::variant keylist = webpgPluginAPI::getKeyList(name, 0);
+
+    // Retrieve a reference to the DOM Window
+    FB::DOM::WindowPtr window = m_host->getDOMWindow();
+
+    // Check if the DOM Window has an in-build JSON Parser
+    if (window && window->getJSObject()->HasProperty("JSON")) {
+        // Convert the VariantMap to a JSON object
+        Json::Value json_value = FB::variantToJsonValue(keylist);
+
+        // Create a writer that will convert the object to a string
+        Json::FastWriter writer;
+
+        // Create a referenec to the JSON object
+        FB::JSObjectPtr obj = window->getProperty<FB::JSObjectPtr>("JSON");
+
+        return obj->Invoke("parse", FB::variant_list_of(writer.write(json_value)));
+    } else {
+        // No JSON parser method present, falling back to return of FB::variant
+        return keylist;
+    }
 }
 
 bool webpgPluginAPI::gpgconf_detected() {
@@ -761,9 +825,6 @@ FB::variant webpgPluginAPI::gpgGetPreference(const std::string& preference)
 /* This method accepts 4 parameters, data, enc_to_keyid, 
     enc_from_keyid [optional], and sign [optional; default: 0:NULL:false]
     the return value is a string buffer of the result */
-/* NOTE: Normally, we should call this without a value for
-    encrypt_from_key to keep the anonymity of the user until after the 
-    host has been validated */
 FB::variant webpgPluginAPI::gpgEncrypt(const std::string& data, 
         const std::string& enc_to_keyid, const std::string& enc_from_keyid,
         const std::string& sign)
@@ -841,6 +902,12 @@ FB::variant webpgPluginAPI::gpgEncrypt(const std::string& data,
     return response;
 }
 
+/* This method attempts to decrypt and verify the string <data>.
+    If <use_agent> is 0, it will attempt to disable the key-agent
+    to prevent a passphrase dialog from displaying. This would be
+    useful in cases where it is useful when you want to verify or
+    decrypt without unlocking the private keyring (i.e. in an
+    automated parsing environment) */
 FB::variant webpgPluginAPI::gpgDecryptVerify(const std::string& data, int use_agent)
 {
     gpgme_ctx_t ctx;
@@ -2092,6 +2159,6 @@ FB::variant webpgPluginAPI::gpgChangePassphrase(const std::string& keyid)
 // Read-only property version
 std::string webpgPluginAPI::get_version()
 {
-    return "0.3.9";
+    return "0.3.10";
 }
 

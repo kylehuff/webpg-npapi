@@ -1,9 +1,3 @@
-/**********************************************************\
-
-  Auto-generated webpgPluginAPI.h
-
-\**********************************************************/
-
 #include <string>
 #include <sstream>
 #include <iostream>
@@ -14,6 +8,8 @@
 #include "webpgPlugin.h"
 
 #include <gpgme.h>
+#include "json/json.h"
+#include "fbjson.h"
 
 #ifndef H_webpgPluginAPI
 #define H_webpgPluginAPI
@@ -55,9 +51,9 @@ public:
     void init();
     gpgme_ctx_t get_gpgme_ctx();
     FB::VariantMap getKeyList(const std::string& name, int secret_only);
-    FB::VariantMap getNamedKey(const std::string& name);
-    FB::VariantMap getPublicKeyList();
-    FB::VariantMap getPrivateKeyList();
+    FB::variant getNamedKey(const std::string& name);
+    FB::variant getPublicKeyList();
+    FB::variant getPrivateKeyList();
 
     std::string get_preference(const std::string& preference);
     FB::variant gpgSetPreference(const std::string& preference,
@@ -122,13 +118,11 @@ public:
     bool gpgconf_detected();
     std::string original_gpg_config;
 
-    // void (*gpgme_progress_cb_t)(void *hook, const char *what, int type, int current, int total)
     static void progress_cb(
         void *self, const char *what,
         int type, int current, int total
     );
 
-    // gpgme_error_t (*gpgme_passphrase_cb_t)(void *hook, const char *uid_hint, const char *passphrase_info, int prev_was_bad, int fd)
 //    gpgme_error_t passdefunct_cb(
 //        void *self, const char *uid_hint,
 //        const char *passphrase_info, int prev_was_bad, int fd
