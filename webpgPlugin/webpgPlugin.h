@@ -36,6 +36,8 @@ public:
     // value of the "windowless" param tag, remove this method or return
     // FB::PluginCore::isWindowless()
     virtual bool isWindowless() { return true; }
+    std::string getPluginPath() { return m_filesystemPath; }
+    FB::variant getPluginParams() { return m_params; }
 
     BEGIN_PLUGIN_EVENT_MAP()
         EVENTTYPE_CASE(FB::MouseDownEvent, onMouseDown, FB::PluginWindow)

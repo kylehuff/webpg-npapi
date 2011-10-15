@@ -45,8 +45,8 @@ public:
 
     webpgPluginPtr getPlugin();
 
-    FB::VariantMap gpg_status_map;
-    FB::VariantMap get_gpg_status();
+    FB::VariantMap webpg_status_map;
+    FB::VariantMap get_webpg_status();
 
     void init();
     gpgme_ctx_t get_gpgme_ctx();

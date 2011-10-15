@@ -2,6 +2,7 @@
 #include "variant_list.h"
 #include "DOM/Document.h"
 #include "DOM/Window.h"
+#include "global/config.h"
 
 #include "webpgPluginAPI.h"
 #include "keyedit.h"
@@ -66,7 +67,7 @@ static bool gpgme_invalid = false;
 ///////////////////////////////////////////////////////////////////////////////
 webpgPluginAPI::webpgPluginAPI(const webpgPluginPtr& plugin, const FB::BrowserHostPtr& host) : m_plugin(plugin), m_host(host)
 {
-    //registerMethod("getKeyList", make_method(this, &webpgPluginAPI::getKeyList));
+    registerMethod("getKeyList", make_method(this, &webpgPluginAPI::getKeyList));
     registerMethod("getPublicKeyList", make_method(this, &webpgPluginAPI::getPublicKeyList));
     registerMethod("getPrivateKeyList", make_method(this, &webpgPluginAPI::getPrivateKeyList));
     registerMethod("getNamedKey", make_method(this, &webpgPluginAPI::getNamedKey));
@@ -112,9 +113,9 @@ webpgPluginAPI::webpgPluginAPI(const webpgPluginPtr& plugin, const FB::BrowserHo
                      make_property(this,
                         &webpgPluginAPI::get_version));
 
-    registerProperty("gpg_status",
+    registerProperty("webpg_status",
                     make_property(this,
-                        &webpgPluginAPI::get_gpg_status));
+                        &webpgPluginAPI::get_webpg_status));
 
     registerProperty("gpgconf_detected",
                      make_property(this,
@@ -157,13 +158,18 @@ void webpgPluginAPI::init()
     gpgme_error_t err;
     FB::VariantMap error_map;
     FB::VariantMap response;
-    FB::VariantMap protocol_info;
+    FB::VariantMap protocol_info, plugin_info;
     gpgme_engine_info_t engine_info;
+
+    plugin_info["source_url"] = m_host->getDOMWindow()->getLocation();
+    plugin_info["path"] = getPlugin()->getPluginPath();
+    plugin_info["params"] = getPlugin()->getPluginParams();
+    response["plugin"] = plugin_info;
 
     /* Initialize the locale environment.
      * The function `gpgme_check_version` must be called before any other
      * function in the library, because it initializes the thread support
-     * subsystem in GPGME. (from the info page) */  
+     * subsystem in GPGME. (from the info page) */
     std::string gpgme_version = (char *) gpgme_check_version(NULL);
 
     setlocale (LC_ALL, "");
@@ -180,7 +186,7 @@ void webpgPluginAPI::init()
         response["openpgpg_valid"] = false;
         response["error"] = true;
         response["error_map"] = error_map;
-        webpgPluginAPI::gpg_status_map = error_map;
+        webpgPluginAPI::webpg_status_map = error_map;
         gpgme_invalid = true;
         return;
     }
@@ -226,7 +232,7 @@ void webpgPluginAPI::init()
     if (ctx)
         gpgme_release (ctx);
 
-    webpgPluginAPI::gpg_status_map = response;
+    webpgPluginAPI::webpg_status_map = response;
 };
 
 gpgme_ctx_t webpgPluginAPI::get_gpgme_ctx()
@@ -375,11 +381,11 @@ FB::variant webpgPluginAPI::getTemporaryPath()
     }
 }
 
-FB::VariantMap webpgPluginAPI::get_gpg_status()
+FB::VariantMap webpgPluginAPI::get_webpg_status()
 {
     webpgPluginAPI::init();
-    webpgPluginAPI::gpg_status_map["edit_status"] = edit_status;
-    return webpgPluginAPI::gpg_status_map;
+    webpgPluginAPI::webpg_status_map["edit_status"] = edit_status;
+    return webpgPluginAPI::webpg_status_map;
 }
 
 /*
@@ -550,30 +556,29 @@ FB::VariantMap webpgPluginAPI::getKeyList(const std::string& name, int secret_on
 */
 FB::variant webpgPluginAPI::getPublicKeyList()
 {
-    // Retrieve the public keylist as a VariantMap
+    // Retrieve the public keylist
     FB::variant public_keylist = webpgPluginAPI::getKeyList("", 0);
 
     // Retrieve a reference to the DOM Window
     FB::DOM::WindowPtr window = m_host->getDOMWindow();
 
-    // Check if the DOM Window has an in-build JSON Parser
+    // Check if the DOM Window has an in-built JSON Parser
     if (window && window->getJSObject()->HasProperty("JSON")) {
-        // Convert the VariantMap to a JSON object
+        // Convert the VariantMap to a Json::Value object
         Json::Value json_value = FB::variantToJsonValue(public_keylist);
 
         // Create a writer that will convert the object to a string
         Json::FastWriter writer;
 
-        // Create a referenec to the JSON object
+        // Create a reference to the browswer JSON object
         FB::JSObjectPtr obj = window->getProperty<FB::JSObjectPtr>("JSON");
 
         return obj->Invoke("parse", FB::variant_list_of(writer.write(json_value)));
     } else {
-        // No JSON parser method present, falling back to return of FB::variant
+        // No browser JSON parser detected, falling back to return of FB::variant
         return public_keylist;
     }
 }
-
 
 /*
     This method executes webpgPlugin.getKeyList with an empty string and
@@ -582,31 +587,31 @@ FB::variant webpgPluginAPI::getPublicKeyList()
 */
 FB::variant webpgPluginAPI::getPrivateKeyList()
 {
-    // Retrieve the public keylist as a VariantMap
+    // Retrieve the private keylist
     FB::variant private_keylist = webpgPluginAPI::getKeyList("", 1);
 
     // Retrieve a reference to the DOM Window
     FB::DOM::WindowPtr window = m_host->getDOMWindow();
 
-    // Check if the DOM Window has an in-build JSON Parser
+    // Check if the DOM Window has an in-built JSON Parser
     if (window && window->getJSObject()->HasProperty("JSON")) {
-        // Convert the VariantMap to a JSON object
+        // Convert the VariantMap to a Json::Value object
         Json::Value json_value = FB::variantToJsonValue(private_keylist);
 
         // Create a writer that will convert the object to a string
         Json::FastWriter writer;
 
-        // Create a referenec to the JSON object
+        // Create a reference to the browswer JSON object
         FB::JSObjectPtr obj = window->getProperty<FB::JSObjectPtr>("JSON");
 
         return obj->Invoke("parse", FB::variant_list_of(writer.write(json_value)));
     } else {
-        // No JSON parser method present, falling back to return of FB::variant
+        // No browser JSON parser detected, falling back to return of FB::variant
         return private_keylist;
     }
 }
 
-/* 
+/*
     This method just calls webpgPlugin.getKeyList with a name/email
         as the parameter
 */
@@ -618,20 +623,20 @@ FB::variant webpgPluginAPI::getNamedKey(const std::string& name)
     // Retrieve a reference to the DOM Window
     FB::DOM::WindowPtr window = m_host->getDOMWindow();
 
-    // Check if the DOM Window has an in-build JSON Parser
+    // Check if the DOM Window has an in-built JSON Parser
     if (window && window->getJSObject()->HasProperty("JSON")) {
-        // Convert the VariantMap to a JSON object
+        // Convert the VariantMap to a Json::Value object
         Json::Value json_value = FB::variantToJsonValue(keylist);
 
         // Create a writer that will convert the object to a string
         Json::FastWriter writer;
 
-        // Create a referenec to the JSON object
+        // Create a reference to the browswer JSON object
         FB::JSObjectPtr obj = window->getProperty<FB::JSObjectPtr>("JSON");
 
         return obj->Invoke("parse", FB::variant_list_of(writer.write(json_value)));
     } else {
-        // No JSON parser method present, falling back to return of FB::variant
+        // No browser JSON parser detected, falling back to return of FB::variant
         return keylist;
     }
 }
@@ -2159,6 +2164,6 @@ FB::variant webpgPluginAPI::gpgChangePassphrase(const std::string& keyid)
 // Read-only property version
 std::string webpgPluginAPI::get_version()
 {
-    return "0.3.10";
+    return FBSTRING_PLUGIN_VERSION;
 }
 
