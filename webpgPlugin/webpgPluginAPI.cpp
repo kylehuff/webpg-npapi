@@ -417,14 +417,14 @@ FB::VariantMap webpgPluginAPI::getKeyList(const std::string& name, int secret_on
         NOTE: The keylist mode flag GPGME_KEYLIST_MODE_SIGS 
             returns the signatures of UIDS with the key */
     gpgme_set_keylist_mode (ctx, (gpgme_get_keylist_mode (ctx)
-                                | GPGME_KEYLIST_MODE_VALIDATE 
-                                | GPGME_KEYLIST_MODE_SIGS));
+                                | GPGME_KEYLIST_MODE_SIGS
+                                | GPGME_KEYLIST_MODE_VALIDATE));
 
     /* gpgme_op_keylist_start (gpgme_ctx_t ctx, const char *pattern, int secret_only) */
     if (name.length() > 0){ // limit key listing to search criteria 'name'
-        err = gpgme_op_keylist_start (ctx, name.c_str(), 0);
+        err = gpgme_op_keylist_start (ctx, name.c_str(), secret_only);
     } else { // list all keys
-        err = gpgme_op_keylist_ext_start (ctx, NULL, secret_only, 0);
+        err = gpgme_op_keylist_start (ctx, NULL, secret_only);
     }
     if(err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
@@ -439,6 +439,10 @@ FB::VariantMap webpgPluginAPI::getKeyList(const std::string& name, int secret_on
         int nsubs;
         int tnsigs;
         FB::VariantMap key_map;
+
+        /* if secret keys being returned, re-retrieve the key so we get all of the key info */ 
+        if(secret_only != 0 && key->subkeys && key->subkeys->keyid)
+            err = gpgme_get_key (ctx, key->subkeys->keyid, &key, 0);
 
         /* iterate through the keys/subkeys and add them to the key_map object */
         if (key->uids && key->uids->name)
@@ -823,7 +827,7 @@ FB::variant webpgPluginAPI::gpgGetPreference(const std::string& preference)
 }
 
 /*
-    This method passes a string to encrypt, a key to encrypt to and an
+    This method passes a string to encrypt, a list of keys to encrypt to and an
         optional key to encrypt from and calls webpgPlugin.gpgEncrypt.
         This method returns a string of the encrypted data.
 */
@@ -831,16 +835,29 @@ FB::variant webpgPluginAPI::gpgGetPreference(const std::string& preference)
     enc_from_keyid [optional], and sign [optional; default: 0:NULL:false]
     the return value is a string buffer of the result */
 FB::variant webpgPluginAPI::gpgEncrypt(const std::string& data, 
-        const std::string& enc_to_keyid, const std::string& enc_from_keyid,
+        const FB::VariantList& enc_to_keyids, const std::string& enc_from_keyid,
         const std::string& sign)
 {
     /* declare variables */
     gpgme_ctx_t ctx = get_gpgme_ctx();
     gpgme_error_t err;
     gpgme_data_t in, out;
-    gpgme_key_t key[3] = { NULL, NULL, NULL };
+    gpgme_key_t key[enc_to_keyids.size()];
+    int nrecipients;
+    FB::variant recipient;
+    FB::VariantList recpients;
     gpgme_encrypt_result_t enc_result;
     FB::VariantMap response;
+    bool unusable_key = false;
+
+    if (enc_to_keyids.size() < 1) {
+        response["error"] = true;
+        response["method"] = __func__;
+        response["error_string"] = "No recpients provided;";
+        response["line"] = __LINE__;
+        response["file"] = __FILE__;
+        return response;
+    }    
 
     err = gpgme_data_new_from_mem (&in, data.c_str(), data.length(), 0);
     if (err != GPG_ERR_NO_ERROR)
@@ -858,14 +875,35 @@ FB::variant webpgPluginAPI::gpgEncrypt(const std::string& data,
     if(err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
 
-    err = gpgme_get_key (ctx, enc_to_keyid.c_str(),
-           &key[0], 0);
-    if(err != GPG_ERR_NO_ERROR)
-        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+    for (nrecipients=0; nrecipients < enc_to_keyids.size(); nrecipients++) {
+
+        recipient = enc_to_keyids[nrecipients];
+
+        err = gpgme_get_key (ctx, recipient.convert_cast<std::string>().c_str(), &key[nrecipients], 0);
+        if(err != GPG_ERR_NO_ERROR)
+            return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+        // Check if key is unusable/invalid
+        unusable_key = key[nrecipients]->invalid? true :
+            key[nrecipients]->expired? true :
+            key[nrecipients]->revoked? true :
+            key[nrecipients]->disabled? true : false;
+        
+        if (unusable_key) {
+            // Somehow an ususable/invalid key has been passed to the method
+            std::string keyid = key[nrecipients]->subkeys->fpr;
+            response["error"] = true;
+            response["result"] = "Key with fingerprint " + keyid + " is invalid";
+            return response;
+        }
+
+    }
+
+    // NULL terminate the key array
+    key[enc_to_keyids.size()] = NULL;
 
     if (enc_from_keyid.length()) {
-        err = gpgme_get_key (ctx, enc_from_keyid.c_str(),
-               &key[1], 0);
+        err = gpgme_get_key (ctx, enc_from_keyid.c_str(), &key[nrecipients + 1], 0);
         if (err != GPG_ERR_NO_ERROR)
             return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
     }
@@ -892,8 +930,9 @@ FB::variant webpgPluginAPI::gpgEncrypt(const std::string& data,
 
     /* if any of the gpgme objects have not yet
         been release, do so now */
-    gpgme_key_unref (key[0]);
-    gpgme_key_unref (key[1]);
+    for (nrecipients=0; nrecipients < enc_to_keyids.size(); nrecipients++)
+        gpgme_key_unref(key[nrecipients]);
+
     if (ctx)
         gpgme_release (ctx);
     if (in)

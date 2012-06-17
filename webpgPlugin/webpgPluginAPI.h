@@ -46,6 +46,13 @@ public:
     webpgPluginPtr getPlugin();
 
     FB::VariantMap webpg_status_map;
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    /// @fn get_webpg_status * webpgPluginAPI::get_webpg_status()
+    ///
+    /// @brief  Returns a map that contains the status of webpgPlugin
+    ///
+    /// @return FB::VariantMap of status
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
     FB::VariantMap get_webpg_status();
 
     void init();
@@ -66,7 +73,7 @@ public:
     FB::variant gpgGetHomeDir();
     FB::variant getTemporaryPath();
 
-    FB::variant gpgEncrypt(const std::string& data, const std::string& enc_to_keyid, 
+    FB::variant gpgEncrypt(const std::string& data, const FB::VariantList& enc_to_keyids, 
         const std::string& enc_from_keyid=NULL, const std::string& sign=NULL);
     FB::variant gpgDecryptVerify(const std::string& data, int use_agent);
     FB::variant gpgDecrypt(const std::string& data);
