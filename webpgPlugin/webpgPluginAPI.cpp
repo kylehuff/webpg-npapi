@@ -842,7 +842,13 @@ FB::variant webpgPluginAPI::gpgEncrypt(const std::string& data,
     gpgme_ctx_t ctx = get_gpgme_ctx();
     gpgme_error_t err;
     gpgme_data_t in, out;
+#ifdef HAVE_W32_SYSTEM
+    // FIXME: W32 doesn't like the array sized by the contents of the
+    // enc_to_keyids - for now set to 100
+    gpgme_key_t key[100];
+#else
     gpgme_key_t key[enc_to_keyids.size()];
+#endif
     int nrecipients;
     FB::variant recipient;
     FB::VariantList recpients;
