@@ -203,6 +203,8 @@ void webpgPluginAPI::init()
         response["error"] = false;
         response["gpgme_valid"] = true;
         response["gpgconf_detected"] = gpgconf_detected();
+        if (!gpgconf_detected())
+            response["gpgconf_response"] = gpgme_strerror (gpgme_engine_check_version (GPGME_PROTOCOL_GPGCONF));
         response["gpgme_version"] = gpgme_version;
         engine_info = gpgme_ctx_get_engine_info (ctx);
         if (engine_info) {
@@ -649,7 +651,7 @@ bool webpgPluginAPI::gpgconf_detected() {
     gpgme_error_t err;
     std::string cfg_present;
     err = gpgme_engine_check_version (GPGME_PROTOCOL_GPGCONF);
-    if (err != GPG_ERR_NO_ERROR) {
+    if (err && err != GPG_ERR_NO_ERROR) {
         return false;
     }
     return true;
@@ -1126,7 +1128,6 @@ FB::variant webpgPluginAPI::gpgSignText(const FB::VariantList& signers, const st
     gpgme_data_t in, out;
     gpgme_key_t key;
     gpgme_sig_mode_t sig_mode;
-    gpgme_new_signature_t signature;
     gpgme_sign_result_t sign_result;
     int nsigners;
     FB::variant signer;

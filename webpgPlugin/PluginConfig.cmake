@@ -35,12 +35,12 @@ set(MOZILLA_PLUGINID "curetheitch.com/webpgPlugin")
 # strings
 set(FBSTRING_CompanyName "CURE|THE|ITCH")
 set(FBSTRING_FileDescription "A browser agnostic NPAPI interface to GnuPG")
-set(FBSTRING_PLUGIN_VERSION "0.4.12")
+set(FBSTRING_PLUGIN_VERSION "0.5.8")
 set(FBSTRING_LegalCopyright "Copyright 2012 CURE|THE|ITCH")
 set(FBSTRING_PluginFileName "np${PLUGIN_NAME}-v${FBSTRING_PLUGIN_VERSION}.dll")
-set(FBSTRING_ProductName "webpg-plugin")
+set(FBSTRING_ProductName "WebPG")
 set(FBSTRING_FileExtents "asc")
-set(FBSTRING_PluginName "webpg-plugin")
+set(FBSTRING_PluginName "WebPG")
 set(FBSTRING_MIMEType "application/x-webpg")
 
 # Uncomment this next line if you're not planning on your plugin doing
