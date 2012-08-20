@@ -1758,6 +1758,7 @@ FB::variant webpgPluginAPI::gpgGenSubKey(const std::string& keyid,
 
     genSubKeyParams params;
 
+    params.keyid = keyid;
     params.subkey_type = subkey_type;
     params.subkey_length = subkey_length;
     params.subkey_expire = subkey_expire;
