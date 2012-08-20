@@ -67,46 +67,59 @@ static bool gpgme_invalid = false;
 ///////////////////////////////////////////////////////////////////////////////
 webpgPluginAPI::webpgPluginAPI(const webpgPluginPtr& plugin, const FB::BrowserHostPtr& host) : m_plugin(plugin), m_host(host)
 {
-    registerMethod("getKeyList", make_method(this, &webpgPluginAPI::getKeyList));
-    registerMethod("getPublicKeyList", make_method(this, &webpgPluginAPI::getPublicKeyList));
-    registerMethod("getPrivateKeyList", make_method(this, &webpgPluginAPI::getPrivateKeyList));
-    registerMethod("getNamedKey", make_method(this, &webpgPluginAPI::getNamedKey));
-    registerMethod("gpgSetPreference", make_method(this, &webpgPluginAPI::gpgSetPreference));
-    registerMethod("gpgGetPreference", make_method(this, &webpgPluginAPI::gpgGetPreference));
-    registerMethod("gpgSetHomeDir", make_method(this, &webpgPluginAPI::gpgSetHomeDir));
-    registerMethod("gpgGetHomeDir", make_method(this, &webpgPluginAPI::gpgGetHomeDir));
-    registerMethod("gpgEncrypt", make_method(this, &webpgPluginAPI::gpgEncrypt));
-    registerMethod("gpgDecrypt", make_method(this, &webpgPluginAPI::gpgDecrypt));
-    registerMethod("gpgVerify", make_method(this, &webpgPluginAPI::gpgVerify));
-    registerMethod("gpgSignText", make_method(this, &webpgPluginAPI::gpgSignText));
-    registerMethod("gpgSignUID", make_method(this, &webpgPluginAPI::gpgSignUID));
-    registerMethod("gpgEnableKey", make_method(this, &webpgPluginAPI::gpgEnableKey));
-    registerMethod("gpgDisableKey", make_method(this, &webpgPluginAPI::gpgDisableKey));
-    registerMethod("gpgDeleteUIDSign", make_method(this, &webpgPluginAPI::gpgDeleteUIDSign));
-    registerMethod("gpgGenKey", make_method(this, &webpgPluginAPI::gpgGenKey));
-    registerMethod("gpgGenSubKey", make_method(this, &webpgPluginAPI::gpgGenSubKey));
-    registerMethod("gpgImportKey", make_method(this, &webpgPluginAPI::gpgImportKey));
-    registerMethod("gpgDeletePublicKey", make_method(this, &webpgPluginAPI::gpgDeletePublicKey));
-    registerMethod("gpgDeletePrivateKey", make_method(this, &webpgPluginAPI::gpgDeletePrivateKey));
-    registerMethod("gpgDeletePrivateSubKey", make_method(this, &webpgPluginAPI::gpgDeletePrivateSubKey));
-    registerMethod("gpgSetKeyTrust", make_method(this, &webpgPluginAPI::gpgSetKeyTrust));
-    registerMethod("gpgAddUID", make_method(this, &webpgPluginAPI::gpgAddUID));
-    registerMethod("gpgDeleteUID", make_method(this, &webpgPluginAPI::gpgDeleteUID));
-    registerMethod("gpgSetPrimaryUID", make_method(this, &webpgPluginAPI::gpgSetPrimaryUID));
-    registerMethod("gpgSetSubkeyExpire", make_method(this, &webpgPluginAPI::gpgSetSubkeyExpire));
-    registerMethod("gpgSetPubkeyExpire", make_method(this, &webpgPluginAPI::gpgSetPubkeyExpire));
-    registerMethod("gpgExportPublicKey", make_method(this, &webpgPluginAPI::gpgExportPublicKey));
-    registerMethod("gpgRevokeKey", make_method(this, &webpgPluginAPI::gpgRevokeKey));
-    registerMethod("gpgRevokeUID", make_method(this, &webpgPluginAPI::gpgRevokeUID));
-    registerMethod("gpgRevokeSignature", make_method(this, &webpgPluginAPI::gpgRevokeSignature));
-    registerMethod("gpgChangePassphrase", make_method(this, &webpgPluginAPI::gpgChangePassphrase));
+    static bool allow_op = true;
+#ifdef _EXTENSIONIZE
+    std::string location = m_host->getDOMWindow()->getLocation();
+    size_t firefox_ext = location.find("chrome://");
+    size_t chrome_ext = location.find("chrome-extension://");
+    if (chrome_ext != std::string::npos || firefox_ext != std::string::npos)
+        allow_op = true;
+    else
+        allow_op = false;
+#endif
 
-    registerMethod("setTempGPGOption", make_method(this, &webpgPluginAPI::setTempGPGOption));
-    registerMethod("restoreGPGConfig", make_method(this, &webpgPluginAPI::restoreGPGConfig));
-    registerMethod("getTemporaryPath", make_method(this, &webpgPluginAPI::getTemporaryPath));
+    if (allow_op == true) {
+        registerMethod("getKeyList", make_method(this, &webpgPluginAPI::getKeyList));
+        registerMethod("getPublicKeyList", make_method(this, &webpgPluginAPI::getPublicKeyList));
+        registerMethod("getPrivateKeyList", make_method(this, &webpgPluginAPI::getPrivateKeyList));
+        registerMethod("getNamedKey", make_method(this, &webpgPluginAPI::getNamedKey));
+        registerMethod("gpgSetPreference", make_method(this, &webpgPluginAPI::gpgSetPreference));
+        registerMethod("gpgGetPreference", make_method(this, &webpgPluginAPI::gpgGetPreference));
+        registerMethod("gpgSetHomeDir", make_method(this, &webpgPluginAPI::gpgSetHomeDir));
+        registerMethod("gpgGetHomeDir", make_method(this, &webpgPluginAPI::gpgGetHomeDir));
+        registerMethod("gpgEncrypt", make_method(this, &webpgPluginAPI::gpgEncrypt));
+        registerMethod("gpgDecrypt", make_method(this, &webpgPluginAPI::gpgDecrypt));
+        registerMethod("gpgVerify", make_method(this, &webpgPluginAPI::gpgVerify));
+        registerMethod("gpgSignText", make_method(this, &webpgPluginAPI::gpgSignText));
+        registerMethod("gpgSignUID", make_method(this, &webpgPluginAPI::gpgSignUID));
+        registerMethod("gpgEnableKey", make_method(this, &webpgPluginAPI::gpgEnableKey));
+        registerMethod("gpgDisableKey", make_method(this, &webpgPluginAPI::gpgDisableKey));
+        registerMethod("gpgDeleteUIDSign", make_method(this, &webpgPluginAPI::gpgDeleteUIDSign));
+        registerMethod("gpgGenKey", make_method(this, &webpgPluginAPI::gpgGenKey));
+        registerMethod("gpgGenSubKey", make_method(this, &webpgPluginAPI::gpgGenSubKey));
+        registerMethod("gpgImportKey", make_method(this, &webpgPluginAPI::gpgImportKey));
+        registerMethod("gpgDeletePublicKey", make_method(this, &webpgPluginAPI::gpgDeletePublicKey));
+        registerMethod("gpgDeletePrivateKey", make_method(this, &webpgPluginAPI::gpgDeletePrivateKey));
+        registerMethod("gpgDeletePrivateSubKey", make_method(this, &webpgPluginAPI::gpgDeletePrivateSubKey));
+        registerMethod("gpgSetKeyTrust", make_method(this, &webpgPluginAPI::gpgSetKeyTrust));
+        registerMethod("gpgAddUID", make_method(this, &webpgPluginAPI::gpgAddUID));
+        registerMethod("gpgDeleteUID", make_method(this, &webpgPluginAPI::gpgDeleteUID));
+        registerMethod("gpgSetPrimaryUID", make_method(this, &webpgPluginAPI::gpgSetPrimaryUID));
+        registerMethod("gpgSetSubkeyExpire", make_method(this, &webpgPluginAPI::gpgSetSubkeyExpire));
+        registerMethod("gpgSetPubkeyExpire", make_method(this, &webpgPluginAPI::gpgSetPubkeyExpire));
+        registerMethod("gpgExportPublicKey", make_method(this, &webpgPluginAPI::gpgExportPublicKey));
+        registerMethod("gpgRevokeKey", make_method(this, &webpgPluginAPI::gpgRevokeKey));
+        registerMethod("gpgRevokeUID", make_method(this, &webpgPluginAPI::gpgRevokeUID));
+        registerMethod("gpgRevokeSignature", make_method(this, &webpgPluginAPI::gpgRevokeSignature));
+        registerMethod("gpgChangePassphrase", make_method(this, &webpgPluginAPI::gpgChangePassphrase));
 
-    registerEvent("onkeygenprogress");
-    registerEvent("onkeygencomplete");
+        registerMethod("setTempGPGOption", make_method(this, &webpgPluginAPI::setTempGPGOption));
+        registerMethod("restoreGPGConfig", make_method(this, &webpgPluginAPI::restoreGPGConfig));
+        registerMethod("getTemporaryPath", make_method(this, &webpgPluginAPI::getTemporaryPath));
+
+        registerEvent("onkeygenprogress");
+        registerEvent("onkeygencomplete");
+    }
 
     // Read-only property
     registerProperty("version",
@@ -166,6 +179,15 @@ void webpgPluginAPI::init()
     plugin_info["params"] = getPlugin()->getPluginParams();
     response["plugin"] = plugin_info;
 
+#ifdef _EXTENSIONIZE
+    response["extensionize"] = true;
+    std::string location = m_host->getDOMWindow()->getLocation();
+    size_t firefox_ext = location.find("chrome://");
+    size_t chrome_ext = location.find("chrome-extension://");
+    response["extension"] = (chrome_ext != std::string::npos) ?
+        "chrome" : (firefox_ext != std::string::npos) ? "firefox" : "unknown";
+#endif
+
     /* Initialize the locale environment.
      * The function `gpgme_check_version` must be called before any other
      * function in the library, because it initializes the thread support
@@ -183,7 +205,7 @@ void webpgPluginAPI::init()
         error_map = get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
 
     if (error_map.size()) {
-        response["openpgpg_valid"] = false;
+        response["openpgp_valid"] = false;
         response["error"] = true;
         response["error_map"] = error_map;
         webpgPluginAPI::webpg_status_map = error_map;
@@ -1466,6 +1488,7 @@ std::string webpgPluginAPI::gpgGenKeyWorker(const std::string& key_type, const s
     err = gpgme_op_genkey (ctx, parms, NULL, NULL);
     if (err)
         return "Error with genkey start" + err;
+
     result = gpgme_op_genkey_result (ctx);
 
     if (!result)
@@ -1541,8 +1564,15 @@ FB::variant webpgPluginAPI::gpgGenSubKeyWorker(const std::string& keyid, const s
         i_to_str(sign_flag) + "', enc_flag='" + i_to_str(enc_flag) + "', auth_flag='" + 
         i_to_str(auth_flag) + "');\n";
     err = gpgme_op_edit (ctx, key, edit_fnc_add_subkey, out, out);
-    if (err != GPG_ERR_NO_ERROR)
+
+    if (err != GPG_ERR_NO_ERROR) {
+        if (gpg_err_code(err) == GPG_ERR_CANCELED)
+            this->FireEvent("onkeygencomplete", FB::variant_list_of("failed: cancelled"));
+        else if (gpg_err_code(err) == GPG_ERR_BAD_PASSPHRASE)
+            this->FireEvent("onkeygencomplete", FB::variant_list_of("failed: bad passphrase"));
+
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+    }
 
     gpgme_data_release (out);
     gpgme_key_unref (key);
