@@ -40,19 +40,20 @@ struct genSubKeyParams {
 class webpgPluginAPI : public FB::JSAPIAuto
 {
 public:
-    webpgPluginAPI(const webpgPluginPtr& plugin, const FB::BrowserHostPtr& host);
+    webpgPluginAPI(const webpgPluginPtr& plugin,
+        const FB::BrowserHostPtr& host);
     virtual ~webpgPluginAPI();
 
     webpgPluginPtr getPlugin();
 
     FB::VariantMap webpg_status_map;
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     /// @fn get_webpg_status * webpgPluginAPI::get_webpg_status()
     ///
     /// @brief  Returns a map that contains the status of webpgPlugin
     ///
     /// @return FB::VariantMap of status
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     FB::VariantMap get_webpg_status();
 
     void init();
@@ -67,31 +68,34 @@ public:
         const std::string& pref_value="");
     FB::variant gpgGetPreference(const std::string& preference);
     std::string getGPGConfigFilename();
-    FB::variant setTempGPGOption(const std::string& option, const std::string& value=NULL);
+    FB::variant setTempGPGOption(const std::string& option,
+        const std::string& value=NULL);
     FB::variant restoreGPGConfig();
     FB::variant gpgSetHomeDir(const std::string& data);
     FB::variant gpgGetHomeDir();
     FB::variant getTemporaryPath();
 
-    FB::variant gpgEncrypt(const std::string& data, const FB::VariantList& enc_to_keyids, 
-        const std::string& enc_from_keyid=NULL, const std::string& sign=NULL);
+    FB::variant gpgEncrypt(const std::string& data,
+        const FB::VariantList& enc_to_keyids, bool sign=false);
+    FB::variant gpgSymmetricEncrypt(const std::string& data,  
+        bool sign=false);
     FB::variant gpgDecryptVerify(const std::string& data, int use_agent);
     FB::variant gpgDecrypt(const std::string& data);
     FB::variant gpgVerify(const std::string& data);
-    FB::variant gpgSignText(const FB::VariantList& signers, const std::string& plain_text,
-        int sign_mode);
+    FB::variant gpgSignText(const FB::VariantList& signers,
+        const std::string& plain_text, int sign_mode);
     FB::variant gpgSignUID(const std::string& keyid, long uid,
-        const std::string& with_keyid, long local_only=NULL, long trust_sign=NULL, 
-        long trust_level=NULL);
+        const std::string& with_keyid, long local_only=NULL,
+        long trust_sign=NULL, long trust_level=NULL);
     FB::variant gpgDeleteUIDSign(const std::string& keyid, long sign_uid,
         long signature);
     FB::variant gpgEnableKey(const std::string& keyid);
     FB::variant gpgDisableKey(const std::string& keyid);
-    std::string gpgGenKey(const std::string& key_type, const std::string& key_length,
-            const std::string& subkey_type, const std::string& subkey_length,
-            const std::string& name_real, const std::string& name_comment,
-            const std::string& name_email, const std::string& expire_date,
-            const std::string& passphrase);
+    std::string gpgGenKey(const std::string& key_type,
+        const std::string& key_length, const std::string& subkey_type,
+        const std::string& subkey_length, const std::string& name_real,
+        const std::string& name_comment, const std::string& name_email,
+        const std::string& expire_date, const std::string& passphrase);
     void threaded_gpgGenKey(genKeyParams params);
     void threaded_gpgGenSubKey(genSubKeyParams params);
     FB::variant gpgImportKey(const std::string& ascii_key);
@@ -101,24 +105,28 @@ public:
     FB::variant gpgDeletePrivateSubKey(const std::string& keyid, int key_idx);
     FB::variant gpgGenSubKey(const std::string& keyid, 
         const std::string& subkey_type, const std::string& subkey_length,
-        const std::string& subkey_expire, bool sign_flag, bool enc_flag, bool auth_flag);
+        const std::string& subkey_expire, bool sign_flag, bool enc_flag,
+        bool auth_flag);
     FB::variant gpgSetKeyTrust(const std::string& keyid, long trust_level);
     FB::variant gpgAddUID(const std::string& keyid, const std::string& name,
         const std::string& email, const std::string& comment);
     FB::variant gpgDeleteUID(const std::string& keyid, long uid_idx);
     FB::variant gpgSetPrimaryUID(const std::string& keyid, long uid_idx);
-    FB::variant gpgSetKeyExpire(const std::string& keyid, long key_idx, long expire);
+    FB::variant gpgSetKeyExpire(const std::string& keyid, long key_idx,
+        long expire);
     FB::variant gpgSetPubkeyExpire(const std::string& keyid, long expire);
-    FB::variant gpgSetSubkeyExpire(const std::string& keyid, long key_idx, long expire);
+    FB::variant gpgSetSubkeyExpire(const std::string& keyid, long key_idx,
+        long expire);
     FB::variant gpgExportPublicKey(const std::string& keyid);
-    FB::variant gpgRevokeItem(const std::string& keyid, const std::string& item, int key_idx,
-        int uid_idx, int sig_idx, int reason_idx, const std::string& desc);
+    FB::variant gpgRevokeItem(const std::string& keyid,
+        const std::string& item, int key_idx, int uid_idx, int sig_idx,
+        int reason_idx, const std::string& desc);
     FB::variant gpgRevokeKey(const std::string& keyid, int key_idx, int reason,
         const std::string &desc);
     FB::variant gpgRevokeUID(const std::string& keyid, int uid_idx, int reason,
         const std::string &desc);
-    FB::variant gpgRevokeSignature(const std::string& keyid, int uid_idx, int sig_idx,
-        int reason, const std::string &desc);
+    FB::variant gpgRevokeSignature(const std::string& keyid, int uid_idx,
+        int sig_idx, int reason, const std::string &desc);
     FB::variant gpgChangePassphrase(const std::string& keyid);
 
     std::string get_version();

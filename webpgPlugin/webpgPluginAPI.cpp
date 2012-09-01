@@ -18,7 +18,8 @@
 FB::VariantMap get_error_map(const std::string& method,
                         gpgme_error_t gpg_error_code,
                         const std::string& error_string,
-                        int line, const std::string& file)
+                        int line, const std::string& file,
+                        std::string data="")
 {
     FB::VariantMap error_map_obj;
     error_map_obj["error"] = true;
@@ -27,6 +28,8 @@ FB::VariantMap get_error_map(const std::string& method,
     error_map_obj["error_string"] = error_string;
     error_map_obj["line"] = line;
     error_map_obj["file"] = file;
+    if (data.length())
+        error_map_obj["data"] = data;
     return error_map_obj;
 }
 
@@ -88,6 +91,7 @@ webpgPluginAPI::webpgPluginAPI(const webpgPluginPtr& plugin, const FB::BrowserHo
         registerMethod("gpgSetHomeDir", make_method(this, &webpgPluginAPI::gpgSetHomeDir));
         registerMethod("gpgGetHomeDir", make_method(this, &webpgPluginAPI::gpgGetHomeDir));
         registerMethod("gpgEncrypt", make_method(this, &webpgPluginAPI::gpgEncrypt));
+        registerMethod("gpgSymmetricEncrypt", make_method(this, &webpgPluginAPI::gpgSymmetricEncrypt));
         registerMethod("gpgDecrypt", make_method(this, &webpgPluginAPI::gpgDecrypt));
         registerMethod("gpgVerify", make_method(this, &webpgPluginAPI::gpgVerify));
         registerMethod("gpgSignText", make_method(this, &webpgPluginAPI::gpgSignText));
@@ -213,9 +217,11 @@ void webpgPluginAPI::init()
         return;
     }
 
-    err = gpgme_new (&ctx);
-    if (err != GPG_ERR_NO_ERROR)
-        error_map = get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+    //err = gpgme_new (&ctx);
+    //if (err != GPG_ERR_NO_ERROR)
+    //    error_map = get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    ctx = get_gpgme_ctx();
 
     if (error_map.size()) {
         response["gpgme_valid"] = false;
@@ -244,6 +250,8 @@ void webpgPluginAPI::init()
         }
     }
 
+    response["GNUPGHOME"] = GNUPGHOME;
+
     // Retrieve the GPG_AGENT_INFO environment variable
     char *gpg_agent_info = getenv("GPG_AGENT_INFO");
 
@@ -271,11 +279,22 @@ gpgme_ctx_t webpgPluginAPI::get_gpgme_ctx()
 #endif
 
     // Check the GNUPGHOME variable, if not null, set that
-    if (GNUPGHOME.length()) {
-        putenv(strdup(GNUPGHOME.c_str()));
+    if (GNUPGHOME.length() > 0) {
+        err = gpgme_new (&ctx);
+        gpgme_engine_info_t engine_info = gpgme_ctx_get_engine_info (ctx);
+        if (engine_info) {
+            err = gpgme_ctx_set_engine_info (ctx, engine_info->protocol,
+                engine_info->file_name,
+                GNUPGHOME.c_str());
+        } else {
+            std::string env = "GNUPGHOME=" + GNUPGHOME;
+            putenv(strdup(env.c_str()));
+            err = gpgme_new (&ctx);
+        }
+    } else {
+        err = gpgme_new (&ctx);
     }
 
-    err = gpgme_new (&ctx);
     gpgme_set_textmode (ctx, 1);
     gpgme_set_armor (ctx, 1);
 
@@ -285,8 +304,8 @@ gpgme_ctx_t webpgPluginAPI::get_gpgme_ctx()
 std::string webpgPluginAPI::getGPGConfigFilename() {
     std::string config_path = "";
 
-    if (GNUPGHOME.length() > 10) {
-        config_path = GNUPGHOME.substr(10);
+    if (GNUPGHOME.length() > 0) {
+        config_path = GNUPGHOME;
     } else {
         char const* home = getenv("HOME");
         if (home || (home = getenv("USERPROFILE"))) {
@@ -386,7 +405,7 @@ FB::variant webpgPluginAPI::restoreGPGConfig() {
 
 FB::variant webpgPluginAPI::gpgSetHomeDir(const std::string& gnupg_path)
 {
-    GNUPGHOME = "GNUPGHOME=" + gnupg_path;
+    GNUPGHOME = gnupg_path;
     return GNUPGHOME;
 }
 
@@ -851,16 +870,14 @@ FB::variant webpgPluginAPI::gpgGetPreference(const std::string& preference)
 }
 
 /*
-    This method passes a string to encrypt, a list of keys to encrypt to and an
-        optional key to encrypt from and calls webpgPlugin.gpgEncrypt.
-        This method returns a string of the encrypted data.
+    This method passes a string to encrypt, a list of keys to encrypt to calls
+        webpgPlugin.gpgEncrypt. This method returns a string of encrypted data.
 */
-/* This method accepts 4 parameters, data, enc_to_keyid, 
-    enc_from_keyid [optional], and sign [optional; default: 0:NULL:false]
+/* This method accepts 3 parameters, data, enc_to_keyid 
+    and sign [optional; default: 0:NULL:false]
     the return value is a string buffer of the result */
 FB::variant webpgPluginAPI::gpgEncrypt(const std::string& data, 
-        const FB::VariantList& enc_to_keyids, const std::string& enc_from_keyid,
-        const std::string& sign)
+        const FB::VariantList& enc_to_keyids, bool sign)
 {
     /* declare variables */
     gpgme_ctx_t ctx = get_gpgme_ctx();
@@ -879,15 +896,6 @@ FB::variant webpgPluginAPI::gpgEncrypt(const std::string& data,
     gpgme_encrypt_result_t enc_result;
     FB::VariantMap response;
     bool unusable_key = false;
-
-    if (enc_to_keyids.size() < 1) {
-        response["error"] = true;
-        response["method"] = __func__;
-        response["error_string"] = "No recpients provided;";
-        response["line"] = __LINE__;
-        response["file"] = __FILE__;
-        return response;
-    }    
 
     err = gpgme_data_new_from_mem (&in, data.c_str(), data.length(), 0);
     if (err != GPG_ERR_NO_ERROR)
@@ -911,20 +919,31 @@ FB::variant webpgPluginAPI::gpgEncrypt(const std::string& data,
 
         err = gpgme_get_key (ctx, recipient.convert_cast<std::string>().c_str(), &key[nrecipients], 0);
         if(err != GPG_ERR_NO_ERROR)
-            return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+            return get_error_map(__func__, gpgme_err_code (err),
+                gpgme_strerror (err), __LINE__, __FILE__,
+                recipient.convert_cast<std::string>().c_str());
 
         // Check if key is unusable/invalid
         unusable_key = key[nrecipients]->invalid? true :
             key[nrecipients]->expired? true :
             key[nrecipients]->revoked? true :
             key[nrecipients]->disabled? true : false;
-        
+
         if (unusable_key) {
             // Somehow an ususable/invalid key has been passed to the method
             std::string keyid = key[nrecipients]->subkeys->fpr;
-            response["error"] = true;
-            response["result"] = "Key with fingerprint " + keyid + " is invalid";
-            return response;
+
+            std::string strerror = key[nrecipients]->invalid? "Invalid key" :
+            key[nrecipients]->expired? "Key expired" :
+            key[nrecipients]->revoked? "Key revoked" :
+            key[nrecipients]->disabled? "Key disabled" : "Unknown error";
+
+            err = key[nrecipients]->invalid? 53 :
+            key[nrecipients]->expired? 153 :
+            key[nrecipients]->revoked? 94 :
+            key[nrecipients]->disabled? 53 : GPG_ERR_UNKNOWN_ERRNO;
+
+            return get_error_map(__func__, gpgme_err_code (err), strerror, __LINE__, __FILE__, keyid);
         }
 
     }
@@ -932,17 +951,50 @@ FB::variant webpgPluginAPI::gpgEncrypt(const std::string& data,
     // NULL terminate the key array
     key[enc_to_keyids.size()] = NULL;
 
-    if (enc_from_keyid.length()) {
-        err = gpgme_get_key (ctx, enc_from_keyid.c_str(), &key[nrecipients + 1], 0);
-        if (err != GPG_ERR_NO_ERROR)
-            return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+    if (sign) {
+        if (enc_to_keyids.size() < 1) {
+            // NOTE: This doesn't actually work due to an issue with gpgme-1.3.2.
+            //  see: https://bugs.g10code.com/gnupg/issue1440 for details
+            //err = gpgme_op_encrypt_sign (ctx, NULL, GPGME_ENCRYPT_NO_ENCRYPT_TO, in, out);
+            return "Signed Symmetric Encryption is not yet implemented";
+        } else {
+            err = gpgme_op_encrypt_sign (ctx, key, GPGME_ENCRYPT_ALWAYS_TRUST, in, out);
+        }
+    } else {
+        if (enc_to_keyids.size() < 1) {
+            // Symmetric encrypt
+            err = gpgme_op_encrypt (ctx, NULL, GPGME_ENCRYPT_NO_ENCRYPT_TO, in, out);
+        } else {
+            err = gpgme_op_encrypt (ctx, key, GPGME_ENCRYPT_ALWAYS_TRUST, in, out);
+        }
     }
 
-    err = gpgme_op_encrypt (ctx, key, GPGME_ENCRYPT_ALWAYS_TRUST, in, out);
     if (err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
 
-    gpgme_data_seek(in, 0, SEEK_SET);
+    if (enc_to_keyids.size() < 1) {
+        // This was a symmetric operation, and gpgme_op_encrypt does not return
+        //  an error if the passphrase is incorrect, so we need to check the
+        //  returned value for actual substance.
+        gpgme_data_seek(out, 0, SEEK_SET);
+        char buf[513];
+        gpgme_data_read (out, buf, 512);
+        int buflen = strlen(buf);
+        if (buflen < 52) {
+            gpgme_release (ctx);
+            gpgme_data_release (in);
+            gpgme_data_release (out);
+            FB::VariantMap error_map_obj;
+            error_map_obj["error"] = true;
+            error_map_obj["method"] = __func__;
+            error_map_obj["gpg_error_code"] = "11";
+            error_map_obj["error_string"] = "Passphrase did not match";
+            error_map_obj["line"] = __LINE__;
+            error_map_obj["file"] = __FILE__;
+            return error_map_obj;
+        }
+    }
+
     enc_result = gpgme_op_encrypt_result (ctx);
     if (enc_result->invalid_recipients)
     {
@@ -974,6 +1026,20 @@ FB::variant webpgPluginAPI::gpgEncrypt(const std::string& data,
     response["error"] = false;
 
     return response;
+}
+
+/*
+    This method just calls webpgPlugin.gpgEncrypt without any keys
+        as the parameter, which then uses Symmetric Encryption.
+*/
+/* This method accepts 2 parameters, data and sign [optional;
+    default: 0:NULL:false].
+    the return value is a string buffer of the result */
+FB::variant webpgPluginAPI::gpgSymmetricEncrypt(const std::string& data,
+        bool sign)
+{
+    FB::VariantList empty_keys;
+    return webpgPluginAPI::gpgEncrypt(data, empty_keys, sign);
 }
 
 /* This method attempts to decrypt and verify the string <data>.
@@ -1248,6 +1314,7 @@ FB::variant webpgPluginAPI::gpgSignUID(const std::string& keyid, long sign_uid,
     webpgPluginAPI::gpgSetPreference("default-key", 
         (char *) with_keyid.c_str());
 
+    /* Release the context and create it again to catch the changes */
     gpgme_release (ctx);
     ctx = get_gpgme_ctx();
     err = gpgme_op_keylist_start (ctx, keyid.c_str(), 0);
@@ -1499,7 +1566,7 @@ std::string webpgPluginAPI::gpgGenKeyWorker(const std::string& key_type, const s
 #endif
         return "error with result";
     }
-        
+
 #ifdef DEBUG
     printf ("Generated key: %s (%s)\n", result->fpr ? result->fpr : "none",
         result->primary ? (result->sub ? "primary, sub" : "primary")
@@ -2197,7 +2264,6 @@ FB::variant webpgPluginAPI::gpgChangePassphrase(const std::string& keyid)
     gpgme_key_t key = NULL;
     FB::VariantMap result;
 
-    ctx = get_gpgme_ctx();
     err = gpgme_op_keylist_start (ctx, keyid.c_str(), 0);
     if (err != GPG_ERR_NO_ERROR)
         result = get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
