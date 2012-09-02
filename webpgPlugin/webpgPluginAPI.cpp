@@ -181,6 +181,7 @@ void webpgPluginAPI::init()
     plugin_info["source_url"] = m_host->getDOMWindow()->getLocation();
     plugin_info["path"] = getPlugin()->getPluginPath();
     plugin_info["params"] = getPlugin()->getPluginParams();
+    plugin_info["version"] = FBSTRING_PLUGIN_VERSION;
     response["plugin"] = plugin_info;
 
 #ifdef _EXTENSIONIZE
