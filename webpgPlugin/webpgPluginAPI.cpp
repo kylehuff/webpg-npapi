@@ -1061,6 +1061,8 @@ FB::variant webpgPluginAPI::gpgDecryptVerify(const std::string& data, int use_ag
     FB::VariantMap response;
     int nsigs;
     int tnsigs = 0;
+    char buf[513];
+    int ret;
 
     char *agent_info = getenv("GPG_AGENT_INFO");
 
@@ -1107,7 +1109,7 @@ FB::variant webpgPluginAPI::gpgDecryptVerify(const std::string& data, int use_ag
     if (err != GPG_ERR_NO_ERROR && !verify_result) {
         // There was an error returned while decrypting;
         //   either bad data, or signed only data
-        if (verify_result->signatures) {
+        if (verify_result && verify_result->signatures) {
             if (verify_result->signatures->status != GPG_ERR_NO_ERROR) {
                 //No valid GPG data to decrypt or signatures to verify; possibly bad armor.\" }";
                 return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
@@ -1128,7 +1130,7 @@ FB::variant webpgPluginAPI::gpgDecryptVerify(const std::string& data, int use_ag
     }
 
     FB::VariantMap signatures;
-    if (verify_result->signatures) {
+    if (verify_result && verify_result->signatures) {
         tnsigs = 0;
         for (nsigs=0, sig=verify_result->signatures; sig; sig = sig->next, nsigs++) {
             FB::VariantMap signature;
@@ -1167,17 +1169,37 @@ FB::variant webpgPluginAPI::gpgDecryptVerify(const std::string& data, int use_ag
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
     }
 
-    size_t out_size = 0;
-    out_buf = gpgme_data_release_and_get_mem (out, &out_size);
+    if (gpgme_err_code (err) == 58 && tnsigs < 1) {
+        gpgme_data_release (out);
+        response["data"] = data;
+        response["message_type"] = "detached_signature";
+    } else {
+        ret = gpgme_data_seek(out, 0, SEEK_SET);
 
-    /* strip the size_t data out of the output buffer */
-    out_buf = out_buf.substr(0, out_size);
-    response["data"] = out_buf;
+        if (ret)
+            return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
 
-    /* set the output object to NULL since it has
-        already been released */
-    out = NULL;
-    out_buf = "";
+        while ((ret = gpgme_data_read (out, buf, 512)) > 0)
+            out_buf += buf;
+
+        if (ret < 0)
+            return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+        if (out_buf.length() < 1) {
+            response["data"] = data;
+            response["message_type"] = "detached_signature";
+            gpgme_data_release (out);
+        } else {
+            size_t out_size = 0;
+            gpgme_data_seek(out, 0, SEEK_SET);
+            out_buf = gpgme_data_release_and_get_mem (out, &out_size);
+
+            /* strip the size_t data out of the output buffer */
+            out_buf = out_buf.substr(0, out_size);
+            response["data"] = out_buf;
+        }
+
+    }
 
     response["signatures"] = signatures;
     response["error"] = false;
