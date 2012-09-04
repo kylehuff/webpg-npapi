@@ -349,6 +349,8 @@ FB::variant webpgPluginAPI::setTempGPGOption(const std::string& option, const st
             tmp_file.close();
         }
 
+        // Ensure we are not appending to an existing line
+        gpgconfigfile += "\n";
         gpgconfigfile += option;
         if (value.length())
             gpgconfigfile += " " + value;
@@ -1070,16 +1072,27 @@ FB::variant webpgPluginAPI::gpgDecryptVerify(const std::string& data, int use_ag
     if (use_agent == 0) {
         // Set the GPG_AGENT_INFO to null because the user shouldn't be bothered with for
         //  a passphrase if we get a chunk of encrypted data by mistake.
-#ifdef HAVE_W32_SYSTEM
-        setTempGPGOption("no-default-keyring", "");
-        setTempGPGOption("secret-keyring", "/dev/null");
-#else
+        setTempGPGOption("batch", "");
+        // Set the defined password to be "", if anything else is sent to the
+        //  agent, this will result in a return error of invalid key when
+        //  performing Symmetric decryption (because the passphrase is the
+        //  secret key)
+        setTempGPGOption("passphrase", "\"\"");
+#ifndef HAVE_W32_SYSTEM
+#ifndef FB_MACOSX
+        // Poison the GPG_AGENT_INFO environment variable
         envvar = "GPG_AGENT_INFO=INVALID";
         putenv(strdup(envvar.c_str()));
 #endif
+#endif
+        // Create our context with the above modifications
+        ctx = get_gpgme_ctx();
+        // Set the passphrase callback to just send "\n", which will
+        //  deal with the case there is no gpg-agent
+        gpgme_set_passphrase_cb (ctx, passphrase_cb, NULL);
+    } else {
+        ctx = get_gpgme_ctx();
     }
-
-    ctx = get_gpgme_ctx();
 
     err = gpgme_data_new_from_mem (&in, data.c_str(), data.length(), 0);
     if (err != GPG_ERR_NO_ERROR) {
@@ -1097,13 +1110,15 @@ FB::variant webpgPluginAPI::gpgDecryptVerify(const std::string& data, int use_ag
     verify_result = gpgme_op_verify_result (ctx);
 
     if (use_agent == 0) {
-#ifdef HAVE_W32_SYSTEM
+        // Restore the gpg.conf options
         restoreGPGConfig();
-#else
         // Restore GPG_AGENT_INFO to its original value
+#ifndef HAVE_W32_SYSTEM
+#ifndef FB_MACOSX
         envvar = "GPG_AGENT_INFO=";
         envvar += agent_info;
         putenv(strdup(envvar.c_str()));
+#endif
 #endif
     }
 

@@ -7,7 +7,13 @@
 #include "BrowserHost.h"
 #include "webpgPlugin.h"
 
-#include <gpgme.h>
+#ifdef HAVE_W32_SYSTEM
+#include "libs/libgpgme/WINNT_x86-msvc/gpgme.h"
+#elif FB_MACOSX
+#include "libs/libgpgme/Darwin_x86_64-gcc/gpgme.h"
+#else
+#include "libs/libgpgme/Linux_x86-gcc/gpgme.h"
+#endif
 #include "json/json.h"
 #include "fbjson.h"
 

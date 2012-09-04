@@ -46,11 +46,13 @@ add_windows_plugin(${PROJECT_NAME} SOURCES)
 #    "${CMAKE_CURRENT_SOURCE_DIR}/sign/passphrase.txt"
 #    "http://timestamp.verisign.com/scripts/timestamp.dll")
 
+add_library(libgpgme STATIC IMPORTED)
+set_property(TARGET libgpgme PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/libs/libgpgme/WINNT_x86-msvc/libgpgme.lib)
+
 # add library dependencies here; leave ${PLUGIN_INTERNAL_DEPS} there unless you know what you're doing!
 target_link_libraries(${PROJECT_NAME}
     ${PLUGIN_INTERNAL_DEPS}
-    libgpg-error-0
-    libgpgme-11
+    libgpgme
     )
 
 set(WIX_HEAT_FLAGS

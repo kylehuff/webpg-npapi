@@ -94,6 +94,35 @@ std::string i_to_str(const int &number)
    return oss.str();
 }
 
+// Create a dummy passphrase callback for instances where we cannot prevent
+//  the agent from prompting the user when we are merely attempting to verify
+//  a PGP block (this is needed for GPG2 on Windows)
+gpgme_error_t
+passphrase_cb (void *opaque, const char *uid_hint, const char *passphrase_info,
+	       int last_was_bad, int fd)
+{
+#ifdef HAVE_W32_SYSTEM
+    DWORD written;
+    WriteFile ((HANDLE) fd, "\n", 1, &written, 0);
+#else
+    int res;
+    std::string pass = "\n";
+    int passlen = pass.length();
+    int off = 0;
+
+    do {
+        res = write (fd, &pass[off], passlen - off);
+        if (res > 0)
+        off += res;
+    }
+    while (res > 0 && off != passlen);
+
+    return off == passlen ? 0 : gpgme_error_from_errno (errno);
+#endif
+
+  return 0;
+}
+
 gpgme_error_t
 edit_fnc_sign (void *opaque, gpgme_status_code_t status, const char *args, int fd)
 {
