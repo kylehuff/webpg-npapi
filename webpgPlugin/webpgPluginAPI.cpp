@@ -1,3 +1,13 @@
+/**********************************************************\ 
+Original Author: Kyle L. Huff (kylehuff)
+
+Created:    Jan 14, 2011
+License:    GNU General Public License, version 2
+            http://www.gnu.org/licenses/gpl-2.0.html
+            
+Copyright 2011 Kyle L. Huff, CURETHEITCH development team
+\**********************************************************/
+
 #include "JSObject.h"
 #include "variant_list.h"
 #include "DOM/Document.h"
@@ -61,8 +71,8 @@ static bool gpgme_invalid = false;
 ///////////////////////////////////////////////////////////////////////////////
 /// @fn webpgPluginAPI::webpgPluginAPI(const webpgPluginPtr& plugin, const FB::BrowserHostPtr host)
 ///
-/// @brief  Constructor for your JSAPI object.  You should register your methods, properties, and events
-///         that should be accessible to Javascript from here.
+/// @brief  Constructor for the JSAPI object.  Registers methods, properties, and events
+///         that should be accessible to Javascript.
 ///
 /// @see FB::JSAPIAuto::registerMethod
 /// @see FB::JSAPIAuto::registerProperty
@@ -169,6 +179,11 @@ webpgPluginPtr webpgPluginAPI::getPlugin()
     return plugin;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn void webpgPluginAPI::init()
+///
+/// @brief  Initializes the webpgPlugin and sets the status variables.
+///////////////////////////////////////////////////////////////////////////////
 void webpgPluginAPI::init()
 {
     gpgme_ctx_t ctx;
@@ -218,10 +233,6 @@ void webpgPluginAPI::init()
         return;
     }
 
-    //err = gpgme_new (&ctx);
-    //if (err != GPG_ERR_NO_ERROR)
-    //    error_map = get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
-
     ctx = get_gpgme_ctx();
 
     if (error_map.size()) {
@@ -268,6 +279,11 @@ void webpgPluginAPI::init()
     webpgPluginAPI::webpg_status_map = response;
 };
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn gpgme_ctx_t webpgPluginAPI::get_gpgme_ctx()
+///
+/// @brief  Creates the gpgme context with the required options.
+///////////////////////////////////////////////////////////////////////////////
 gpgme_ctx_t webpgPluginAPI::get_gpgme_ctx()
 {
     gpgme_ctx_t ctx;
@@ -302,6 +318,12 @@ gpgme_ctx_t webpgPluginAPI::get_gpgme_ctx()
     return ctx;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn std::string webpgPluginAPI::getGPGConfigFilename()
+///
+/// @brief  Attempts to determine the correct location of the gpg
+///         configuration file.
+///////////////////////////////////////////////////////////////////////////////
 std::string webpgPluginAPI::getGPGConfigFilename() {
     std::string config_path = "";
 
@@ -329,6 +351,12 @@ std::string webpgPluginAPI::getGPGConfigFilename() {
     return config_path;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::setTempGPGOption(const std::string& option, const std::string& value)
+///
+/// @brief  Creates a backup of the gpg.conf file and writes the options to
+///         gpg.conf; This should be called prior to initializing the context.
+///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::setTempGPGOption(const std::string& option, const std::string& value) {
 
     std::string result;
@@ -376,6 +404,11 @@ FB::variant webpgPluginAPI::setTempGPGOption(const std::string& option, const st
     return result;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::restoreGPGConfig()
+///
+/// @brief  Restores the gpg.conf file from memory or the backup file.
+///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::restoreGPGConfig() {
 
     std::string config_path = getGPGConfigFilename();
@@ -406,6 +439,13 @@ FB::variant webpgPluginAPI::restoreGPGConfig() {
     return result;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::gpgSetHomeDir(const std::string& gnupg_path)
+///
+/// @brief  Sets the GNUPGHOME static variable to the path specified in 
+///         gnupg_path. This should be called prior to initializing the
+///         gpgme context.
+///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgSetHomeDir(const std::string& gnupg_path)
 {
     GNUPGHOME = gnupg_path;
@@ -417,6 +457,11 @@ FB::variant webpgPluginAPI::gpgGetHomeDir()
     return GNUPGHOME;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::getTemporaryPath()
+///
+/// @brief  Attempts to determine the system or user temporary path.
+///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::getTemporaryPath()
 {
     char *gnupghome_envvar = getenv("TEMP");
@@ -427,6 +472,41 @@ FB::variant webpgPluginAPI::getTemporaryPath()
     }
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::get_webpg_status()
+///
+/// @brief  Executes webpgPluginAPI::init() to set the status variables and
+///         populates the "edit_status" property with the contents of the
+///         edit_status constant.
+///
+/// @returns FB::VariantMap webpg_status_map
+/*! @verbatim
+webpg_status_map {
+    "GNUPGHOME":"",
+    "OpenPGP":{
+        "file_name":"/usr/bin/gpg",
+        "req_version":"1.4.0",
+        "version":"1.4.11"
+    },
+    "edit_status":"",
+    "error":false,
+    "gpg_agent_info":"/tmp/keyring-5FZWyz/gpg:0:1",
+    "gpgconf_detected":true,
+    "gpgme_valid":true,
+    "gpgme_version":"1.3.2",
+    "plugin":{
+        "params":{
+            "id":"webpgPlugin",
+            "type":"application/x-webpg"
+        },
+        "path":"plugins/Linux_x86_64-gcc/npwebpgPlugin-v0.6.1.so",
+        "source_url":"_generated_background_page.html",
+        "version":"0.6.1"
+    }
+}
+@endverbatim
+*/
+///////////////////////////////////////////////////////////////////////////////
 FB::VariantMap webpgPluginAPI::get_webpg_status()
 {
     webpgPluginAPI::init();
@@ -434,6 +514,120 @@ FB::VariantMap webpgPluginAPI::get_webpg_status()
     return webpgPluginAPI::webpg_status_map;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::VariantMap webpgPluginAPI::getKeyList(cont std::string& name, int secret_only)
+///
+/// @brief  Retrieves all keys matching name, or if name is not specified,
+///         returns all keys in the keyring. The keyring to use is determined
+///         by the integer value of secret_only.
+///
+/// @param  name    Name of key to retrieve
+/// @param  secret_only Return only secret keys (private keyring)
+/// @returns FB::VariantMap keylist_map
+/*! @verbatim
+keylist_map {
+    "1E4F6A67ACD1C298":{
+        "can_authenticate":true,
+        "can_certify":true,
+        "can_encrypt":true,
+        "can_sign":true,
+        "disabled":false,
+        "email":"webpg.extension.devel@curetheitch.com",
+        "expired":false,
+        "fingerprint":"68634186B526CC1F959404401E4F6A67ACD1C298",
+        "invalid":false,
+        "is_qualified":false,
+        "name":"WebPG Testing Key",
+        "owner_trust":"marginal",
+        "protocol":"OpenPGP",
+        "revoked":false,
+        "secret":false,
+        "subkeys":{
+            "0":{
+                "algorithm":1,
+                "algorithm_name":"RSA",
+                "can_authenticate":true,
+                "can_certify":true,
+                "can_encrypt":true,
+                "can_sign":true,
+                "created":1311695391,
+                "disabled":false,
+                "expired":false,
+                "expires":1382501753,
+                "invalid":false,
+                "is_qualified":false,
+                "revoked":false,
+                "secret":false,
+                "size":2048,
+                "subkey":"68634186B526CC1F959404401E4F6A67ACD1C298"
+            },
+            "1":{
+                "algorithm":1,
+                "algorithm_name":"RSA",
+                "can_authenticate":true,
+                "can_certify":false,
+                "can_encrypt":true,
+                "can_sign":true,
+                "created":1311695391,
+                "disabled":false,
+                "expired":false,
+                "expires":1382501780,
+                "invalid":false,
+                "is_qualified":false,
+                "revoked":false,
+                "secret":false,
+                "size":2048,
+                "subkey":"0C178DD984F837340075BD76C599711F5E82BB93"
+            }
+        },
+        "uids":{
+            "0":{
+                "comment":"",
+                "email":"webpg.extension.devel@curetheitch.com",
+                "invalid":false,
+                "revoked":false,
+                "signatures":{
+                    "0":{
+                        "algorithm":1,
+                        "algorithm_name":"RSA",
+                        "comment":"",
+                        "created":1344744953,
+                        "email":"webpg.extension.devel@curetheitch.com",
+                        "expired":false,
+                        "expires":0,
+                        "exportable":true,
+                        "invalid":false,
+                        "keyid":"1E4F6A67ACD1C298",
+                        "name":"WebPG Testing Key",
+                        "revoked":false,
+                        "uid":"WebPG Testing Key <webpg.extension.devel@curetheitch.com>"
+                    },
+                    "1":{
+                        "algorithm":17,
+                        "algorithm_name":"DSA",
+                        "comment":"",
+                        "created":1315338021,
+                        "email":"",
+                        "expired":false,
+                        "expires":0,
+                        "exportable":false,
+                        "invalid":false,
+                        "keyid":"0DF9C95C3BE1A023",
+                        "name":"Kyle L. Huff",
+                        "revoked":false,
+                        "uid":"Kyle L. Huff"
+                    },
+                },
+                "signatures_count":2,
+                "uid":"WebPG Testing Key",
+                "validity":"full"
+           }
+       }
+    }
+}
+@endverbatim
+*/
+///////////////////////////////////////////////////////////////////////////////
 /*
     This method retrieves all keys matching name, or if name is left empty,
         returns all keys in the keyring.
@@ -600,6 +794,13 @@ FB::VariantMap webpgPluginAPI::getKeyList(const std::string& name, int secret_on
     return keylist_map;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::getPublicKeyList()
+///
+/// @brief  Calls webpgPluginAPI::getKeyList() without specifying a search
+///         string, and the secret_only paramter as "0", which returns only
+///         Public Keys from the keyring. 
+///////////////////////////////////////////////////////////////////////////////
 /*
     This method executes webpgPlugin.getKeyList with an empty string and
         secret_only=0 which returns all Public Keys in the keyring.
@@ -630,6 +831,13 @@ FB::variant webpgPluginAPI::getPublicKeyList()
     }
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::getPrivateKeyList()
+///
+/// @brief  Calls webpgPluginAPI::getKeyList() without specifying a search
+///         string, and the secret_only paramter as "1", which returns only
+///         Private Keys from the keyring. 
+///////////////////////////////////////////////////////////////////////////////
 /*
     This method executes webpgPlugin.getKeyList with an empty string and
         secret_only=1 which returns all keys in the keyring which
@@ -661,6 +869,13 @@ FB::variant webpgPluginAPI::getPrivateKeyList()
     }
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::getNamedKey(const std::string& name)
+///
+/// @brief  Calls webpgPluginAPI::getKeyList() with a search string and the
+///         secret_only paramter as "0", which returns only Public Keys from
+///         the keyring. 
+///////////////////////////////////////////////////////////////////////////////
 /*
     This method just calls webpgPlugin.getKeyList with a name/email
         as the parameter
@@ -691,6 +906,11 @@ FB::variant webpgPluginAPI::getNamedKey(const std::string& name)
     }
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn bool webpgPluginAPI::gpgconf_detected()
+///
+/// @brief  Determines if the gpgconf util is available to the gpgme_engine.
+///////////////////////////////////////////////////////////////////////////////
 bool webpgPluginAPI::gpgconf_detected() {
     gpgme_error_t err;
     std::string cfg_present;
@@ -701,6 +921,14 @@ bool webpgPluginAPI::gpgconf_detected() {
     return true;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn std::string webpgPluginAPI::get_preference(const std::string& preference)
+///
+/// @brief  Attempts to retrieve the specified preference from the gpgconf
+///         utility.
+///
+/// @param  preference  The gpgconf preference to retrieve.
+///////////////////////////////////////////////////////////////////////////////
 std::string webpgPluginAPI::get_preference(const std::string& preference)
 {
     gpgme_ctx_t ctx = get_gpgme_ctx();
@@ -734,6 +962,15 @@ std::string webpgPluginAPI::get_preference(const std::string& preference)
 
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::gpgSetPreference(const std::string& preference, const std::string& pref_value)
+///
+/// @brief  Attempts to set the specified gpgconf preference with the value
+///         of pref_value.
+///
+/// @param  preference  The preference to set.
+/// @param  pref_value  The value to assign to the specified preference. 
+///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgSetPreference(const std::string& preference, const std::string& pref_value)
 {
 	gpgme_error_t err;
@@ -818,7 +1055,14 @@ FB::variant webpgPluginAPI::gpgSetPreference(const std::string& preference, cons
     return return_code;
 }
 
-
+///////////////////////////////////////////////////////////////////////////////
+/// @fn std::string webpgPluginAPI::gpgGetPreference(const std::string& preference)
+///
+/// @brief  Attempts to retrieve the specified preference from the gpgconf
+///         utility.
+///
+/// @param  preference  The gpgconf preference to retrieve.
+///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgGetPreference(const std::string& preference)
 {
 	gpgme_error_t err;
@@ -872,6 +1116,32 @@ FB::variant webpgPluginAPI::gpgGetPreference(const std::string& preference)
     return response;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::gpgEncrypt(const std::string& data, const FB::VariantList& enc_to_keyids, bool sign)
+///
+/// @brief  Encrypts the data passed in data with the key ids passed in
+///         enc_to_keyids and optionally signs the data.
+///
+/// @param  data    The data to encrypt.
+/// @param  enc_to_keyids   A VariantList of key ids to encrypt to (recpients).
+/// @param  sign    The data should be also be signed.
+///
+/// @return FB::variant response
+/*! @verbatim
+response {
+    "data":"—————BEGIN PGP MESSAGE—————
+            Version: GnuPG v1.4.11 (GNU/Linux)
+            
+            jA0EAwMC3hG5kEn899BgyWQW6CHxijX8Zw9oe1OAb7zlofpbVLXbvvyKWPKN3mSk
+            i244qGDD8ReGbG87/w52pyNFHd8848TS5r5RwVyDaU8uGFg1XeUSyywAg4p5hg+v
+            8Ad/SJfwG0WHXfX9HXoWdkQ+sRkl
+            =8KTs
+            —————END PGP MESSAGE—————",
+    "error":false
+}
+@endverbatim
+*/
+///////////////////////////////////////////////////////////////////////////////
 /*
     This method passes a string to encrypt, a list of keys to encrypt to calls
         webpgPlugin.gpgEncrypt. This method returns a string of encrypted data.
@@ -1031,6 +1301,17 @@ FB::variant webpgPluginAPI::gpgEncrypt(const std::string& data,
     return response;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::gpgSymmetricEncrypt(const std::string& data, bool sign)
+///
+/// @brief  Calls webpgPluginAPI::gpgEncrypt() without any recipients specified
+///         which initiates a Symmetric encryption method on the gpgme context.
+///
+/// @param  data    The data to symmetrically encrypt.
+/// @param  sign    The data should also be signed. NOTE: Signed symmetric
+///                 encryption does not work in gpgme v1.3.2; For details,
+///                 see https://bugs.g10code.com/gnupg/issue1440
+///////////////////////////////////////////////////////////////////////////////
 /*
     This method just calls webpgPlugin.gpgEncrypt without any keys
         as the parameter, which then uses Symmetric Encryption.
@@ -1045,12 +1326,37 @@ FB::variant webpgPluginAPI::gpgSymmetricEncrypt(const std::string& data,
     return webpgPluginAPI::gpgEncrypt(data, empty_keys, sign);
 }
 
-/* This method attempts to decrypt and verify the string <data>.
-    If <use_agent> is 0, it will attempt to disable the key-agent
-    to prevent a passphrase dialog from displaying. This would be
-    useful in cases where it is useful when you want to verify or
-    decrypt without unlocking the private keyring (i.e. in an
-    automated parsing environment) */
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::gpgDecryptVerify(const std::string& data, int use_agent)
+///
+/// @brief  Attempts to decrypt and verify the string data. If use_agent
+///         is 0, it will attempt to disable the key-agent to prevent the
+///         passphrase dialog from displaying. This is useful in cases where
+///         you want to verify or decrypt without unlocking the private keyring
+///         (i.e. in an automated parsing environment).
+///
+/// @param  data    The data to decrypt and/or verify.
+/// @param  use_agent   Attempt to disable the gpg-agent
+///
+/// @return FB::variant response
+/*! @verbatim
+response {
+    "data":"This is a test of symmetric encrypted data with a signature...\n",
+    "error":false,
+    "message_type":"signed_message",
+    "signatures":{
+        "0":{
+            "expiration":"0",
+            "fingerprint":"0C178DD984F837340075BD76C599711F5E82BB93",
+            "status":"GOOD",
+            "timestamp":"1346645718",
+            "validity":"full"
+        }
+    }
+}
+@endverbatim
+*/
+///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgDecryptVerify(const std::string& data, int use_agent)
 {
     gpgme_ctx_t ctx;
@@ -1225,7 +1531,14 @@ FB::variant webpgPluginAPI::gpgDecryptVerify(const std::string& data, int use_ag
     return response;
 }
 
-
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::gpgDecrypt(const std::string& data)
+///
+/// @brief  Calls webpgPluginAPI::gpgDecryptVerify() with the use_agent flag
+///         specifying to not disable the gpg-agent.
+///
+/// @param  data    The data to decyrpt.
+///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgDecrypt(const std::string& data)
 {
     return webpgPluginAPI::gpgDecryptVerify(data, 1);
@@ -1236,15 +1549,44 @@ FB::variant webpgPluginAPI::gpgVerify(const std::string& data)
     return webpgPluginAPI::gpgDecryptVerify(data, 0);
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::gpgSignText(FB::VariantList& signers, const std::string& plain_text, int sign_mode)
+///
+/// @brief  Signs the text specified in plain_text with the key ids specified
+///         in signers, with the signature mode specified in sign_mode.
+///
+/// @param  signers    The key ids to sign with.
+/// @param  plain_text    The data to sign.
+/// @param  sign_mode   The GPGME_SIG_MODE to use for signing.
+///
+/// @return FB::variant response
+/*! @verbatim
+response {
+    "data":"—————BEGIN PGP SIGNED MESSAGE—————
+            Hash: SHA1
+            
+            This is some text to sign...
+            —————BEGIN PGP SIGNATURE—————
+            Version: GnuPG v1.4.11 (GNU/Linux)
+            
+            iQEcBAEBAgAGBQJQTQWwAAoJEMWZcR9egruTsp8H/A/qNCyzSsoVR+VeQQTEBcfi
+            OpJkwQ5BCm2/5ZdlFATijaHe3s1C2OYUmncb3Z+OIIy8FNzCuMboNl83m5ro0Ng8
+            IgSAcVJpLlVwbkAfGyWqmQ48yS7gDqb0pUSgkhEgCnMn+yDtFWPgAVTiKpuWJpf8
+            NiIO1cNm+3RwSnftSxGDLTUu3UoXh7BZXnoOMa63fUukF3duzIrIUhav8zg/Vfrb
+            JK7tC2UPRGJCVREr/2EEYvpasHxHX2yJpT+cYM1ChCGgo+Kd3OX4sDRAALZ+7Gwm
+            NdrvT57QxQ7Y/cSd5H+c3/vpYzSwwmXmK+/m3uVUHIdccOvGNg7vNg8aYSfR1FY=
+            =v9Ab
+            —————END PGP SIGNATURE—————",
+    "error":false
+}
+@endverbatim
+*/
+///////////////////////////////////////////////////////////////////////////////
 /*
-    This method signs the data plain_text with the keys found in signers, using the mode
-        specified in sign_mode.
-
     sign_mode is one of:
         0: GPGME_SIG_MODE_NORMAL
         1: GPGME_SIG_MODE_DETACH
         2: GPGME_SIG_MODE_CLEAR
-
 */
 FB::variant webpgPluginAPI::gpgSignText(const FB::VariantList& signers, const std::string& plain_text,
     int sign_mode)
@@ -1329,6 +1671,19 @@ FB::variant webpgPluginAPI::gpgSignText(const FB::VariantList& signers, const st
 
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::gpgSignUID(const std::string& keyid, long sign_uid, const std::string& with_keyid, long local_only, long trust_sign, long trust_level)
+///
+/// @brief  Signs the UID index of the specified keyid using the signing key
+///         with_keyid.
+///
+/// @param  keyid    The ID of the key with the desired UID to sign.
+/// @param  sign_uid    The 0 based index of the UID.
+/// @param  with_keyid  The ID of the key to create the signature with.
+/// @param  local_only  Specifies if the signature is local only (non exportable).
+/// @param  trust_sign  Specifies if this is a trust signature.
+/// @param  trust_level The level of trust to assign.
+///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgSignUID(const std::string& keyid, long sign_uid,
     const std::string& with_keyid, long local_only, long trust_sign, 
     long trust_level)
@@ -1406,6 +1761,13 @@ FB::variant webpgPluginAPI::gpgSignUID(const std::string& keyid, long sign_uid,
     return response;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::gpgEnableKey(const std::string& keyid)
+///
+/// @brief  Sets the key specified with keyid as enabled in gpupg. 
+///
+/// @param  keyid    The ID of the key to enable.
+///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgEnableKey(const std::string& keyid)
 {
     gpgme_ctx_t ctx = get_gpgme_ctx();
@@ -1445,6 +1807,13 @@ FB::variant webpgPluginAPI::gpgEnableKey(const std::string& keyid)
     return response;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::gpgDisableKey(const std::string& keyid)
+///
+/// @brief  Sets the key specified with keyid as disabled in gpupg. 
+///
+/// @param  keyid    The ID of the key to disable.
+///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgDisableKey(const std::string& keyid)
 {
     gpgme_ctx_t ctx = get_gpgme_ctx();
@@ -1485,7 +1854,15 @@ FB::variant webpgPluginAPI::gpgDisableKey(const std::string& keyid)
 
 }
 
-
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::gpgDeleteUIDSign(const std::string& keyid, long uid, long signature)
+///
+/// @brief  Deletes the Signature signature on the uid of keyid.
+///
+/// @param  keyid    The ID of the key containing the UID to delete the signature from.
+/// @param  uid    The index of the UID containing the signature to delete.
+/// @param  signature   The signature index of the signature to delete.
+///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgDeleteUIDSign(const std::string& keyid,
     long uid, long signature)
 {
@@ -1533,6 +1910,18 @@ FB::variant webpgPluginAPI::gpgDeleteUIDSign(const std::string& keyid,
     return response;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn void webpgPluginAPI::progress_cb(void *self, const char *what, int type, int current, int total)
+///
+/// @brief  Called by the long-running, asymmetric gpg genkey method to display the status.
+///
+/// @param  self    A reference to webpgPluginAPI, since the method is called
+///                 outside of the class.
+/// @param  what    The current action status from gpg genkey.
+/// @param  type    The type of of action.
+/// @param  current ?
+/// @param  total   ?
+///////////////////////////////////////////////////////////////////////////////
 void webpgPluginAPI::progress_cb(void *self, const char *what, int type, int current, int total)
 {
     if (!strcmp (what, "primegen") && !current && !total
@@ -1547,6 +1936,33 @@ void webpgPluginAPI::progress_cb(void *self, const char *what, int type, int cur
     }
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn std::string webpgPluginAPI::gpgGenKeyWorker(const std::string& key_type, const std::string& key_length, 
+///        const std::string& subkey_type, const std::string& subkey_length, const std::string& name_real, 
+///        const std::string& name_comment, const std::string& name_email, const std::string& expire_date, 
+///        const std::string& passphrase, void* APIObj,
+///        void(*cb_status)(
+///            void *self,
+///            const char *what,
+///            int type,
+///            int current,
+///            int total
+///        ))
+///
+/// @brief  Creates a threaded worker to run the gpg keygen operation.
+///
+/// @param  key_type    The key type to genereate.
+/// @param  key_length    The size of the key to generate.
+/// @param  subkey_type   The subkey type to generate.
+/// @param  subkey_length   The size of the subkey to genereate.
+/// @param  name_real   The name to assign the UID.
+/// @param  name_comment    The comment to assign to the UID.
+/// @param  name_email  The email address to assign to the UID.
+/// @param  expire_date The expiration date to assign to the generated key.
+/// @param  passphrase  The passphrase to assign the to the key.
+/// @param  APIObj  A reference to webpgPluginAPI.
+/// @param  cb_status   The progress callback for the operation.
+///////////////////////////////////////////////////////////////////////////////
 std::string webpgPluginAPI::gpgGenKeyWorker(const std::string& key_type, const std::string& key_length, 
         const std::string& subkey_type, const std::string& subkey_length, const std::string& name_real, 
         const std::string& name_comment, const std::string& name_email, const std::string& expire_date, 
@@ -1617,6 +2033,30 @@ std::string webpgPluginAPI::gpgGenKeyWorker(const std::string& key_type, const s
     return "done";
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::gpgGenSubKeyWorker(const std::string& keyid, const std::string& subkey_type,
+///         const std::string& subkey_length, const std::string& subkey_expire, bool sign_flag,
+///         bool enc_flag, bool auth_flag, void* APIObj,
+///         void(*cb_status)(
+///            void *self,
+///            const char *what,
+///            int type,
+///            int current,
+///            int total
+///         ))
+///
+/// @brief  Creates a threaded worker to run the gpg keygen operation.
+///
+/// @param  keyid   The ID of the key to create the subkey on.
+/// @param  subkey_type    The subkey type to genereate.
+/// @param  subkey_length    The size of the subkey to generate.
+/// @param  subkey_expire The expiration date to assign to the generated key.
+/// @param  sign_flag  Set the sign capabilities flag.
+/// @param  enc_flag    Set the encrypt capabilities flag.
+/// @param  auth_flag   Set the auth capabilities flag.
+/// @param  APIObj  A reference to webpgPluginAPI.
+/// @param  cb_status   The progress callback for the operation.
+///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgGenSubKeyWorker(const std::string& keyid, const std::string& subkey_type,
         const std::string& subkey_length, const std::string& subkey_expire, bool sign_flag,
         bool enc_flag, bool auth_flag, void* APIObj,
@@ -1691,6 +2131,13 @@ FB::variant webpgPluginAPI::gpgGenSubKeyWorker(const std::string& keyid, const s
     return "done";
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn void webpgPluginAPI::threaded_gpgGenKey(genKeyParams params)
+///
+/// @brief  Calls webpgPluginAPI::gpgGenKeyWorker() with the specified parameters.
+///
+/// @param  params   The parameters used to generete the key.
+///////////////////////////////////////////////////////////////////////////////
 void webpgPluginAPI::threaded_gpgGenKey(genKeyParams params)
 {
     std::string result = webpgPluginAPI::gpgGenKeyWorker(params.key_type, params.key_length,
@@ -1701,6 +2148,13 @@ void webpgPluginAPI::threaded_gpgGenKey(genKeyParams params)
 
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn void webpgPluginAPI::threaded_gpgGenSubKey(genKeyParams params)
+///
+/// @brief  Calls webpgPluginAPI::gpgGenSubKeyWorker() with the specified parameters.
+///
+/// @param  params   The parameters used to generete the subkey.
+///////////////////////////////////////////////////////////////////////////////
 void webpgPluginAPI::threaded_gpgGenSubKey(genSubKeyParams params)
 {
     FB::variant result = webpgPluginAPI::gpgGenSubKeyWorker(params.keyid, params.subkey_type,
@@ -1710,6 +2164,24 @@ void webpgPluginAPI::threaded_gpgGenSubKey(genSubKeyParams params)
 
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn std::string webpgPluginAPI::gpgGenKey(const std::string& key_type, const std::string& key_length, 
+///        const std::string& subkey_type, const std::string& subkey_length, const std::string& name_real, 
+///        const std::string& name_comment, const std::string& name_email, const std::string& expire_date, 
+///        const std::string& passphrase)
+///
+/// @brief  Queues a threaded gpg genkey operation.
+///
+/// @param  key_type    The key type to genereate.
+/// @param  key_length    The size of the key to generate.
+/// @param  subkey_type   The subkey type to generate.
+/// @param  subkey_length   The size of the subkey to genereate.
+/// @param  name_real   The name to assign the UID.
+/// @param  name_comment    The comment to assign to the UID.
+/// @param  name_email  The email address to assign to the UID.
+/// @param  expire_date The expiration date to assign to the generated key.
+/// @param  passphrase  The passphrase to assign the to the key.
+///////////////////////////////////////////////////////////////////////////////
 std::string webpgPluginAPI::gpgGenKey(const std::string& key_type, 
         const std::string& key_length, const std::string& subkey_type, 
         const std::string& subkey_length, const std::string& name_real,
@@ -1738,6 +2210,13 @@ std::string webpgPluginAPI::gpgGenKey(const std::string& key_type,
     return "queued";
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::gpgImportKey(const std::string& ascii_key)
+///
+/// @brief  Imports the ASCII encoded key ascii_key
+///
+/// @param  ascii_key   An armored, ascii encoded PGP Key block.
+///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgImportKey(const std::string& ascii_key)
 {
     gpgme_ctx_t ctx = get_gpgme_ctx();
@@ -1788,6 +2267,13 @@ FB::variant webpgPluginAPI::gpgImportKey(const std::string& ascii_key)
     return status;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::gpgDeleteKey(const std::string& keyid, int allow_secret)
+///
+/// @brief  Deletes the key specified in keyid from the keyring.
+///
+/// @param  allow_secret   Enables/disables deleting the key from the private keyring.
+///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgDeleteKey(const std::string& keyid, int allow_secret)
 {
     gpgme_ctx_t ctx = get_gpgme_ctx();
@@ -1824,22 +2310,38 @@ FB::variant webpgPluginAPI::gpgDeleteKey(const std::string& keyid, int allow_sec
     This method executes webpgPlugin.gpgDeleteKey with the allow_secret=0,
         which allows it to only delete public Public Keys from the keyring.
 */
-
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::gpgDeletePublicKey(const std::string& keyid)
+///
+/// @brief  Deletes key specified in keyid from the Public keyring.
+///
+/// @param  keyid   The ID of the key to delete from the Public keyring.
+///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgDeletePublicKey(const std::string& keyid)
 {
     return webpgPluginAPI::gpgDeleteKey(keyid, 0);
 }
 
-/*
-    This method executes webpgPlugin.gpgDeleteKey with the allow_secret=1,
-        which allows it to delete Private and Public Keys from the keyring.
-*/
-
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::gpgDeletePrivateKey(const std::string& keyid)
+///
+/// @brief  Deletes key specified in keyid from the Private keyring.
+///
+/// @param  keyid   The ID of the key to delete from the Private keyring.
+///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgDeletePrivateKey(const std::string& keyid)
 {
     return webpgPluginAPI::gpgDeleteKey(keyid, 1);
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::gpgDeletePrivateSubKey(const std::string& keyid, int key_idx)
+///
+/// @brief  Deletes subkey located at index key_idx form the key specified in keyid.
+///
+/// @param  keyid   The ID of the key to delete the subkey from.
+/// @param  key_idx The index of the subkey to delete.
+///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgDeletePrivateSubKey(const std::string& keyid, int key_idx)
 {
     gpgme_ctx_t ctx = get_gpgme_ctx();
@@ -1886,6 +2388,21 @@ FB::variant webpgPluginAPI::gpgDeletePrivateSubKey(const std::string& keyid, int
     return response;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::gpgGenSubKey(const std::string& keyid, 
+///         const std::string& subkey_type, const std::string& subkey_length,
+///         const std::string& subkey_expire, bool sign_flag, bool enc_flag, bool auth_flag) 
+///
+/// @brief  Queues a threaded gpg gensubkey operation.
+///
+/// @param  keyid    The key to generate the subkey on.
+/// @param  subkey_type   The subkey type to generate.
+/// @param  subkey_length   The size of the subkey to genereate.
+/// @param  subkey_expire The expiration date to assign to the generated subkey.
+/// @param  sign_flag  Set the sign capabilities flag.
+/// @param  enc_flag    Set the encrypt capabilities flag.
+/// @param  auth_flag  Set the auth capabilities flag.
+///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgGenSubKey(const std::string& keyid, 
         const std::string& subkey_type, const std::string& subkey_length,
         const std::string& subkey_expire, bool sign_flag, bool enc_flag, bool auth_flag)
@@ -1910,6 +2427,14 @@ FB::variant webpgPluginAPI::gpgGenSubKey(const std::string& keyid,
     return "queued";
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::gpgSetKeyTrust(const std::string& keyid, long trust_level)
+///
+/// @brief  Sets the gnupg trust level assignment for the given keyid.
+///
+/// @param  keyid   The ID of the key to assign the trust level on.
+/// @param  trust_level The level of trust to assign.
+///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgSetKeyTrust(const std::string& keyid, long trust_level)
 {
     gpgme_ctx_t ctx = get_gpgme_ctx();
@@ -1958,6 +2483,17 @@ FB::variant webpgPluginAPI::gpgSetKeyTrust(const std::string& keyid, long trust_
     return response;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::gpgAddUID(const std::string& keyid, const std::string& name,
+///     const std::string& email, const std::string& comment)
+///
+/// @brief  Adds a new UID to the key specified by keyid.
+///
+/// @param  keyid   The ID of the key to add the UID to.
+/// @param  name    The name to assign to the new UID.
+/// @param  email   The email address to assign to the new UID.
+/// @param  comment The comment to assign to the new UID.
+///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgAddUID(const std::string& keyid, const std::string& name,
         const std::string& email, const std::string& comment)
 {
@@ -2023,6 +2559,14 @@ FB::variant webpgPluginAPI::gpgAddUID(const std::string& keyid, const std::strin
     return response;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::gpgDeleteUID(const std::string& keyid, long uid_idx)
+///
+/// @brief  Deletes the UID specified by uid_idx from the key specified with keyid.
+///
+/// @param  keyid   The ID of the key to delete to the specified UID from.
+/// @param  uid_idx The index of the UID to delete from the key.
+///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgDeleteUID(const std::string& keyid, long uid_idx)
 {
     gpgme_ctx_t ctx = get_gpgme_ctx();
@@ -2074,6 +2618,14 @@ FB::variant webpgPluginAPI::gpgDeleteUID(const std::string& keyid, long uid_idx)
     return response;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::gpgSetPrimaryUID(const std::string& keyid, long uid_idx)
+///
+/// @brief  Sets a given UID as the primary for the key specified with keyid.
+///
+/// @param  keyid   The ID of the key with the UID to make primary.
+/// @param  uid_idx The index of the UID to make primary on the key.
+///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgSetPrimaryUID(const std::string& keyid, long uid_idx)
 {
     gpgme_ctx_t ctx = get_gpgme_ctx();
@@ -2125,6 +2677,15 @@ FB::variant webpgPluginAPI::gpgSetPrimaryUID(const std::string& keyid, long uid_
     return response;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::gpgSetKeyExpire(const std::string& keyid, long key_idx, long expire)
+///
+/// @brief  Sets the expiration of the given key_idx on the key keyid with the expiration of expire.
+///
+/// @param  keyid   The ID of the key to set the expiration on.
+/// @param  key_idx The index of the subkey to set the expiration on.
+/// @param  expire  The expiration to assign.
+///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgSetKeyExpire(const std::string& keyid, long key_idx, long expire)
 {
     gpgme_ctx_t ctx = get_gpgme_ctx();
@@ -2173,17 +2734,56 @@ FB::variant webpgPluginAPI::gpgSetKeyExpire(const std::string& keyid, long key_i
     return response;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::gpgSetPubkeyExpire(const std::string& keyid, long expire)
+///
+/// @brief  Sets the expiration of the public key of the given keyid.
+///
+/// @param  keyid   The ID of the key to set the expiration on.
+/// @param  expire  The expiration to assign to the key.
+///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgSetPubkeyExpire(const std::string& keyid, long expire)
 {
     return webpgPluginAPI::gpgSetKeyExpire(keyid, 0, expire);
 }
 
-
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::gpgSetSubkeyExpire(const std::string& keyid, long key_idx, long expire)
+///
+/// @brief  Sets the expiration of the subkey specified with key_idx on the key specified with keyid.
+///
+/// @param  keyid   The ID of the key to set the expiration on.
+/// @param  key_idx The index of the subkey to set the expiration on.
+/// @param  expire  The expiration to assign to the key.
+///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgSetSubkeyExpire(const std::string& keyid, long key_idx, long expire)
 {
     return webpgPluginAPI::gpgSetKeyExpire(keyid, key_idx, expire);
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::gpgExportPublicKey(const std::string& keyid)
+///
+/// @brief  Exports the public key specified with keyid as an armored ASCII encoded PGP Block.
+///
+/// @param  keyid   The ID of the Public key to export.
+///
+/// @return FB::variant response
+/*! @verbatim
+response {
+    "error":false,
+    "result":"—————BEGIN PGP PUBLIC KEY BLOCK—————
+            Version: GnuPG v1.4.11 (GNU/Linux)
+
+            mQENBE4u4h8BCADCtBh7btjjKMGVsbjTUKSl69M3bbeBgjR/jMBtYFEJmC0ZnPE9
+            ... truncated ...
+            uOIPbsuvGT06lotLoalLgA==
+            =bq+M
+            —————END PGP PUBLIC KEY BLOCK—————"
+}
+@endverbatim
+*/
+///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgExportPublicKey(const std::string& keyid)
 {
     gpgme_ctx_t ctx = get_gpgme_ctx();
@@ -2219,6 +2819,20 @@ FB::variant webpgPluginAPI::gpgExportPublicKey(const std::string& keyid)
     return response;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::gpgRevokeItem(const std::string& keyid, const std::string& item, int key_idx,
+///     int uid_idx, int sig_idx, int reason, const std::string& desc)
+///
+/// @brief  Revokes a give key, trust item, subkey, uid or signature with the specified reason and description.
+///
+/// @param  keyid   The ID of the to revoke, or the ID of the key that contains the subitem passed.
+/// @param  item    The item to revoke.
+/// @param  key_idx The index of the subkey to revoke.
+/// @param  uid_idx The index of the UID to revoke.
+/// @param  sig_idx The index of the signature to revoke.
+/// @param  reason  The gnupg reason for the revocation.
+/// @param  desc    The text description for the revocation.
+///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgRevokeItem(const std::string& keyid, const std::string& item, int key_idx,
     int uid_idx, int sig_idx, int reason, const std::string& desc)
 {
@@ -2276,24 +2890,65 @@ FB::variant webpgPluginAPI::gpgRevokeItem(const std::string& keyid, const std::s
     return response;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::gpgRevokeKey(const std::string& keyid, int key_idx, int reason,
+///    const std::string &desc)
+///
+/// @brief  Revokes the given key/subkey with the reason and description specified.
+///
+/// @param  keyid   The ID of the key to revoke.
+/// @param  key_idx The index of the subkey to revoke.
+/// @param  reason  The gnupg reason for the revocation.
+/// @param  desc    The text description for the revocation.
+///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgRevokeKey(const std::string& keyid, int key_idx, int reason,
     const std::string &desc)
 {
     return webpgPluginAPI::gpgRevokeItem(keyid, "revkey", key_idx, 0, 0, reason, desc);
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::gpgRevokeUID(const std::string& keyid, int uid_idx, int reason,
+///    const std::string &desc)
+///
+/// @brief  Revokes the given UID with the reason and description specified.
+///
+/// @param  keyid   The ID of the key with the UID to revoke.
+/// @param  uid_idx The index of the UID to revoke.
+/// @param  reason  The gnupg reason for the revocation.
+/// @param  desc    The text description for the revocation.
+///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgRevokeUID(const std::string& keyid, int uid_idx, int reason,
     const std::string &desc)
 {
     return webpgPluginAPI::gpgRevokeItem(keyid, "revuid", 0, uid_idx, 0, reason, desc);
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::gpgRevokeSignature(const std::string& keyid, int uid_idx, int sig_idx,
+///    int reason, const std::string &desc)
+///
+/// @brief  Revokes the given signature on the specified UID of key keyid with the reason and description specified.
+///
+/// @param  keyid   The ID of the key with the signature to revoke.
+/// @param  uid_idx The index of the UID with the signature to revoke.
+/// @param  sig_idx The index of the signature to revoke.
+/// @param  reason  The gnupg reason for the revocation.
+/// @param  desc    The text description for the revocation.
+///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgRevokeSignature(const std::string& keyid, int uid_idx, int sig_idx,
     int reason, const std::string &desc)
 {
     return webpgPluginAPI::gpgRevokeItem(keyid, "revsig", 0, uid_idx, sig_idx, reason, desc);
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::gpgChangePassphrase(const std::string& keyid)
+///
+/// @brief  Invokes the gpg-agent to change the passphrase for the given key.
+///
+/// @param  keyid   The ID of the key to change the passphrase.
+///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgChangePassphrase(const std::string& keyid)
 {
     gpgme_ctx_t ctx = get_gpgme_ctx();
@@ -2342,6 +2997,11 @@ FB::variant webpgPluginAPI::gpgChangePassphrase(const std::string& keyid)
     return response;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn std::string webpgPluginAPI::get_version()
+///
+/// @brief  Retruns the defined plugin version
+///////////////////////////////////////////////////////////////////////////////
 // Read-only property version
 std::string webpgPluginAPI::get_version()
 {
