@@ -1,5 +1,6 @@
 install: make get-deps
 test: make build
+language: cpp
 compiler:
   - gcc
   - clang
