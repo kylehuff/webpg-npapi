@@ -235,31 +235,25 @@ void webpgPluginAPI::init()
 
     ctx = get_gpgme_ctx();
 
-    if (error_map.size()) {
-        response["gpgme_valid"] = false;
-        response["error"] = true;
-        gpgme_invalid = true;
+    response["error"] = false;
+    response["gpgme_valid"] = true;
+    response["gpgconf_detected"] = gpgconf_detected();
+    if (!gpgconf_detected())
+        response["gpgconf_response"] = gpgme_strerror (gpgme_engine_check_version (GPGME_PROTOCOL_GPGCONF));
+    response["gpgme_version"] = gpgme_version;
+    engine_info = gpgme_ctx_get_engine_info (ctx);
+    if (engine_info) {
+        if (engine_info->file_name)
+            protocol_info["file_name"] = (char *) engine_info->file_name;
+        if (engine_info->version)
+            protocol_info["version"] = (char *) engine_info->version;
+        if (engine_info->home_dir)
+            protocol_info["home_dir"] = (char *) engine_info->home_dir;
+        if (engine_info->req_version)
+            protocol_info["req_version"] = (char *) engine_info->req_version;
+        response[(char *) gpgme_get_protocol_name (engine_info->protocol)] = protocol_info;
     } else {
-        response["error"] = false;
-        response["gpgme_valid"] = true;
-        response["gpgconf_detected"] = gpgconf_detected();
-        if (!gpgconf_detected())
-            response["gpgconf_response"] = gpgme_strerror (gpgme_engine_check_version (GPGME_PROTOCOL_GPGCONF));
-        response["gpgme_version"] = gpgme_version;
-        engine_info = gpgme_ctx_get_engine_info (ctx);
-        if (engine_info) {
-            if (engine_info->file_name)
-                protocol_info["file_name"] = (char *) engine_info->file_name;
-            if (engine_info->version)
-                protocol_info["version"] = (char *) engine_info->version;
-            if (engine_info->home_dir)
-                protocol_info["home_dir"] = (char *) engine_info->home_dir;
-            if (engine_info->req_version)
-                protocol_info["req_version"] = (char *) engine_info->req_version;
-            response[(char *) gpgme_get_protocol_name (engine_info->protocol)] = protocol_info;
-        } else {
-            response["OpenPGP"] = get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
-        }
+        response["OpenPGP"] = get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
     }
 
     response["GNUPGHOME"] = GNUPGHOME;
