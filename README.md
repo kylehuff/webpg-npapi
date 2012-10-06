@@ -27,7 +27,6 @@ The easiest way to install on OS X is to use the [GPGTools Installer](https://ww
 Building Dependencies
 =====================
 * [cmake](http://www.cmake.org/)
-* development headers and libraries for [libgpgme](http://www.gnupg.org/related_software/gpgme/) and [libgpg-error](http://www.gnupg.org/related_software/libgpg-error/index.en.html)
 
 
 Prep Build Environment
