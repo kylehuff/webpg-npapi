@@ -1,8 +1,8 @@
 Description
 ===========
-webpg-npapi is an NPAPI plugin project that provides GnuPG related Public/Private Key operations for use in major browsers.
+webpg-npapi is an [NPAPI](https://developer.mozilla.org/en-US/docs/Plugins) plugin project that provides GnuPG related Public/Private Key operations for use in major browsers.
 
-This is a firebreath NPAPI plugin project, and this repository includes a submodule of FireBreath 1.5
+This is a [FireBreath](http://www.firebreath.org/display/documentation/FireBreath+Home) NPAPI plugin project, and this repository includes a submodule of FireBreath 1.5
 
 
 Prerequisites
