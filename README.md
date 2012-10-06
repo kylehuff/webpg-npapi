@@ -7,8 +7,8 @@ This is a firebreath NPAPI plugin project, and this repository includes a submod
 
 Building Dependencies
 =====================
-* ```cmake```
-* development headers and libraries for ```libgpgme``` and ```gpg-error```
+* [cmake](http://www.cmake.org/)
+* development headers and libraries for [libgpgme](http://www.gnupg.org/related_software/gpgme/) and [libgpg-error](http://www.gnupg.org/related_software/libgpg-error/index.en.html)
 
 
 Prep Build Environment
