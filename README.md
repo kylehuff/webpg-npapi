@@ -5,6 +5,25 @@ webpg-npapi is an NPAPI plugin project that provides GnuPG related Public/Privat
 This is a firebreath NPAPI plugin project, and this repository includes a submodule of FireBreath 1.5
 
 
+Prerequisites
+=============
+In order for this plugin to work, you must have a working [GNUPG](http://www.gnupg.org/) installation.
+
+Linux
+-----
+
+On Debian-based systems you can install GNUPG2 by running the command
+
+```
+sudo apt-get install gnupg2
+```
+
+Mac OSX
+-------
+
+The easiest way to install on OS X is to use the [GPGTools Installer](https://www.gpgtools.org/).
+
+
 Building Dependencies
 =====================
 * [cmake](http://www.cmake.org/)
