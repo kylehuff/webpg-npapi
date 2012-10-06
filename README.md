@@ -7,7 +7,7 @@ This is a firebreath NPAPI plugin project, and this repository includes a submod
 
 Prerequisites
 =============
-In order for this plugin to work, you must have a working [GNUPG](http://www.gnupg.org/) installation.
+In order for this plugin to work, you must have a working [GnuPG](http://www.gnupg.org/) installation.
 
 Linux
 -----
