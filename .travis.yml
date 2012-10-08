@@ -1,0 +1,7 @@
+install: make get-deps
+test: make build
+script: make build
+language: cpp
+compiler:
+  - gcc
+  - clang
