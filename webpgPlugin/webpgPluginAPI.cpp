@@ -509,7 +509,7 @@ FB::VariantMap webpgPluginAPI::get_webpg_status()
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-/// @fn FB::VariantMap webpgPluginAPI::getKeyList(cont std::string& name, int secret_only)
+/// @fn FB::VariantMap webpgPluginAPI::getKeyList(const std::string& name, int secret_only)
 ///
 /// @brief  Retrieves all keys matching name, or if name is not specified,
 ///         returns all keys in the keyring. The keyring to use is determined
@@ -776,9 +776,11 @@ FB::VariantMap webpgPluginAPI::getKeyList(const std::string& name, int secret_on
         gpgme_key_unref (key);
     }
 
-    if (gpg_err_code (err) != GPG_ERR_EOF) exit(6);
+    if (gpg_err_code (err) != GPG_ERR_EOF)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
     err = gpgme_op_keylist_end (ctx);
-    if(err != GPG_ERR_NO_ERROR) exit(7);
+    if(err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
     result = gpgme_op_keylist_result (ctx);
     if (result->truncated)
      {
