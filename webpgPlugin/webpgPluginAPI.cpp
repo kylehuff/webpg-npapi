@@ -1122,7 +1122,7 @@ FB::variant webpgPluginAPI::gpgGetPreference(const std::string& preference)
 /// @param  enc_to_keyids   A VariantList of key ids to encrypt to (recpients).
 /// @param  sign    The data should be also be signed.
 ///
-/// @return FB::variant response
+/// @returns FB::variant response
 /*! @verbatim
 response {
     "data":"—————BEGIN PGP MESSAGE—————
@@ -1334,7 +1334,7 @@ FB::variant webpgPluginAPI::gpgSymmetricEncrypt(const std::string& data,
 /// @param  data    The data to decrypt and/or verify.
 /// @param  use_agent   Attempt to disable the gpg-agent
 ///
-/// @return FB::variant response
+/// @returns FB::variant response
 /*! @verbatim
 response {
     "data":"This is a test of symmetric encrypted data with a signature...\n",
@@ -1555,7 +1555,7 @@ FB::variant webpgPluginAPI::gpgVerify(const std::string& data)
 /// @param  plain_text    The data to sign.
 /// @param  sign_mode   The GPGME_SIG_MODE to use for signing.
 ///
-/// @return FB::variant response
+/// @returns FB::variant response
 /*! @verbatim
 response {
     "data":"—————BEGIN PGP SIGNED MESSAGE—————
@@ -2764,7 +2764,7 @@ FB::variant webpgPluginAPI::gpgSetSubkeyExpire(const std::string& keyid, long ke
 ///
 /// @param  keyid   The ID of the Public key to export.
 ///
-/// @return FB::variant response
+/// @returns FB::variant response
 /*! @verbatim
 response {
     "error":false,
