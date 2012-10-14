@@ -4,6 +4,9 @@ webpg-npapi is an [NPAPI](https://developer.mozilla.org/en-US/docs/Plugins) plug
 
 This is a [FireBreath](http://www.firebreath.org/display/documentation/FireBreath+Home) NPAPI plugin project, and this repository includes a submodule of FireBreath 1.5
 
+Documentation
+=============
+Documentation and Class reference can be found here: http://webpg.org/docs/webpg-npapi/
 
 Prerequisites
 =============
