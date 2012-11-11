@@ -109,6 +109,8 @@ webpgPluginAPI::webpgPluginAPI(const webpgPluginPtr& plugin, const FB::BrowserHo
         registerMethod("gpgGetPreference", make_method(this, &webpgPluginAPI::gpgGetPreference));
         registerMethod("gpgSetHomeDir", make_method(this, &webpgPluginAPI::gpgSetHomeDir));
         registerMethod("gpgGetHomeDir", make_method(this, &webpgPluginAPI::gpgGetHomeDir));
+        registerMethod("gpgSetBinary", make_method(this, &webpgPluginAPI::gpgSetBinary));
+        registerMethod("gpgGetBinary", make_method(this, &webpgPluginAPI::gpgGetBinary));
         registerMethod("gpgEncrypt", make_method(this, &webpgPluginAPI::gpgEncrypt));
         registerMethod("gpgSymmetricEncrypt", make_method(this, &webpgPluginAPI::gpgSymmetricEncrypt));
         registerMethod("gpgDecrypt", make_method(this, &webpgPluginAPI::gpgDecrypt));
@@ -291,6 +293,8 @@ gpgme_ctx_t webpgPluginAPI::get_gpgme_ctx()
 {
     gpgme_ctx_t ctx;
     gpgme_error_t err;
+    char *home_dir;
+    char *file_name;
 
     setlocale (LC_ALL, "");
     gpgme_set_locale (NULL, LC_CTYPE, setlocale (LC_CTYPE, NULL));
@@ -298,22 +302,22 @@ gpgme_ctx_t webpgPluginAPI::get_gpgme_ctx()
     gpgme_set_locale (NULL, LC_MESSAGES, setlocale (LC_MESSAGES, NULL));
 #endif
 
-    // Check the GNUPGHOME variable, if not null, set that
-    if (GNUPGHOME.length() > 0) {
-        err = gpgme_new (&ctx);
-        gpgme_engine_info_t engine_info = gpgme_ctx_get_engine_info (ctx);
-        if (engine_info) {
-            err = gpgme_ctx_set_engine_info (ctx, engine_info->protocol,
-                engine_info->file_name,
-                GNUPGHOME.c_str());
-        } else {
-            std::string env = "GNUPGHOME=" + GNUPGHOME;
-            putenv(strdup(env.c_str()));
-            err = gpgme_new (&ctx);
-        }
-    } else {
-        err = gpgme_new (&ctx);
+    // Check the GNUPGBIN variable, if not null, use that
+    if (GNUPGBIN.length() > 0) {
+        file_name = (char *) GNUPGBIN.c_str();
     }
+
+    // Check the GNUPGHOME variable, if not null, use that
+    if (GNUPGHOME.length() > 0) {
+        home_dir = (char *) GNUPGHOME.c_str();
+    }
+    
+    err = gpgme_new (&ctx);
+    gpgme_engine_info_t engine_info = gpgme_ctx_get_engine_info (ctx);
+    err = gpgme_ctx_set_engine_info (ctx, engine_info->protocol,
+        (GNUPGBIN.length() > 0) ? file_name : engine_info->file_name,
+        (GNUPGHOME.c_str() > 0) ? home_dir : engine_info->home_dir);
+
 
     gpgme_set_textmode (ctx, 1);
     gpgme_set_armor (ctx, 1);
@@ -459,6 +463,25 @@ FB::variant webpgPluginAPI::gpgGetHomeDir()
 {
     return GNUPGHOME;
 }
+
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::gpgSetBinary(const std::string& gnupg_exec)
+///
+/// @brief  Sets the GNUPGBIN static variable to the path specified in 
+///         gnupg_exec. This should be called prior to initializing the
+///         gpgme context.
+///////////////////////////////////////////////////////////////////////////////
+FB::variant webpgPluginAPI::gpgSetBinary(const std::string& gnupg_exec)
+{
+    GNUPGBIN = gnupg_exec;
+    return GNUPGBIN;
+}
+
+FB::variant webpgPluginAPI::gpgGetBinary()
+{
+    return GNUPGBIN;
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////
 /// @fn FB::variant webpgPluginAPI::getTemporaryPath()

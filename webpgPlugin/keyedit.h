@@ -11,6 +11,7 @@
 //    wchar_t *GNUPGHOME;
 //#else
 std::string GNUPGHOME;
+std::string GNUPGBIN;
 //#endif
 
 // A global holder for the current edit_fnc status

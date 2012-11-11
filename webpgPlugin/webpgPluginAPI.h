@@ -237,8 +237,18 @@ public:
     ///         gnupg_path. This should be called prior to initializing the
     ///         gpgme context.
     ///////////////////////////////////////////////////////////////////////////////
-    FB::variant gpgSetHomeDir(const std::string& data);
+    FB::variant gpgSetHomeDir(const std::string& gnupg_path);
     FB::variant gpgGetHomeDir();
+
+    ///////////////////////////////////////////////////////////////////////////////
+    /// @fn FB::variant webpgPluginAPI::gpgSetBinary(const std::string& gnupg_exec)
+    ///
+    /// @brief  Sets the GNUPGBIN static variable to the path specified in 
+    ///         gnupg_exec. This should be called prior to initializing the
+    ///         gpgme context.
+    ///////////////////////////////////////////////////////////////////////////////
+    FB::variant gpgSetBinary(const std::string& gnupg_exec);
+    FB::variant gpgGetBinary();
 
     ///////////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::getTemporaryPath()
