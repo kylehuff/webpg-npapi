@@ -57,6 +57,4 @@ public:
     /** END EVENTDEF -- DON'T CHANGE THIS LINE **/
 };
 
-
 #endif
-

@@ -620,6 +620,10 @@ public:
     ///////////////////////////////////////////////////////////////////////////////
     FB::variant gpgChangePassphrase(const std::string& keyid);
 
+    int verifyDomainKey(const std::string& domain, 
+        const std::string& domain_key_fpr, long uid_idx,
+        const std::string& required_sig_keyid);
+
     ///////////////////////////////////////////////////////////////////////////////
     /// @fn std::string webpgPluginAPI::get_version()
     ///

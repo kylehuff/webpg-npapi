@@ -77,6 +77,13 @@ static bool gpgme_invalid = false;
 /// @see FB::JSAPIAuto::registerMethod
 /// @see FB::JSAPIAuto::registerProperty
 /// @see FB::JSAPIAuto::registerEvent
+///
+/// @note if _EXTENSIONIZE is ture/nonnull, the plugin will only register the 
+///         provided methods if the plugin was loaded from a page at URL
+///         "chrome://" (Mozilla products) or "chrome-extension://" (Google
+///         Chrome/Chromium) to prevent the plugin from being loaded by a
+///         public web page. This flag is set at compile time, and cannot be
+///         modified during operation.
 ///////////////////////////////////////////////////////////////////////////////
 webpgPluginAPI::webpgPluginAPI(const webpgPluginPtr& plugin, const FB::BrowserHostPtr& host) : m_plugin(plugin), m_host(host)
 {
@@ -96,6 +103,8 @@ webpgPluginAPI::webpgPluginAPI(const webpgPluginPtr& plugin, const FB::BrowserHo
         registerMethod("getPublicKeyList", make_method(this, &webpgPluginAPI::getPublicKeyList));
         registerMethod("getPrivateKeyList", make_method(this, &webpgPluginAPI::getPrivateKeyList));
         registerMethod("getNamedKey", make_method(this, &webpgPluginAPI::getNamedKey));
+        registerMethod("getDomainKey", make_method(this, &webpgPluginAPI::getNamedKey));
+        registerMethod("verifyDomainKey", make_method(this, &webpgPluginAPI::verifyDomainKey));
         registerMethod("gpgSetPreference", make_method(this, &webpgPluginAPI::gpgSetPreference));
         registerMethod("gpgGetPreference", make_method(this, &webpgPluginAPI::gpgGetPreference));
         registerMethod("gpgSetHomeDir", make_method(this, &webpgPluginAPI::gpgSetHomeDir));
@@ -2992,6 +3001,199 @@ FB::variant webpgPluginAPI::gpgChangePassphrase(const std::string& keyid)
 
     return response;
 }
+
+/*
+    This method ensures a given UID <domain> with matching keyid
+        <domain_key_fpr> has been signed by a required key
+        <required_sig_keyid> and returns a GAU_trust value as the result.
+        This method is intended to be called during an iteration of
+        trusted key ids.
+*/
+    //TODO: Make these values constants and replace the usages below
+    //  to use the constants
+    //TODO: Add this list of constants to the documentation
+    /* verifyDomainKey returns a numeric trust value -
+        -7: the domain UID and/or domain key was signed by an expired key
+        -6: the domain UID and/or domain key was signed by a key that
+            has been revoked
+        -5: the domain uid was signed by a disabled key
+        -4: the  sinature has been revoked, disabled or is invalid
+        -3: the uid has been revoked or is disabled or invalid.
+        -2: the key belonging to the domain has been revoked or disabled, or is invalid.
+        -1: the domain uid was not signed by any enabled private key and fails
+             web-of-trust
+        0: UID of domain_keyid was signed by an ultimately trusted private key
+        1: UID of domain_keyid was signed by an expired private key that is
+            ultimately trusted
+        2: UID of domain_keyid was signed by a private key that is other than 
+            ultimately trusted
+        3: UID of domain_keyid was signed by an expired private key that is
+            other than ultimately trusted
+        4: domain_keyid was signed (not the UID) by an ultimately trusted
+            private key
+        5: domain_key was signed (not the UID) by an expired ultimately trusted
+            key
+        6: domain_keyid was signed (not the UID) by an other than ultimately
+            trusted private key
+        7: domain_key was signed (not the UID) by an expired other than
+            ultimately trusted key
+        8: domain_keyid was not signed, but meets web of trust
+            requirements (i.e.: signed by a key that the user
+            trusts and has signed, as defined by the user
+            preference of "advnaced.trust_model")
+    */
+int webpgPluginAPI::verifyDomainKey(const std::string& domain, 
+        const std::string& domain_key_fpr, long uid_idx,
+        const std::string& required_sig_keyid)
+{
+    int nuids;
+    int nsigs;
+    int domain_key_valid = -1;
+    gpgme_ctx_t ctx = get_gpgme_ctx();
+    gpgme_key_t domain_key, user_key, secret_key, key;
+    gpgme_user_id_t uid;
+    gpgme_key_sig_t sig;
+    gpgme_error_t err;
+    gpgme_keylist_result_t result;
+    
+    gpgme_set_keylist_mode (ctx, (gpgme_get_keylist_mode (ctx) 
+                                | GPGME_KEYLIST_MODE_SIGS));
+
+    err = gpgme_op_keylist_start (ctx, (char *) domain_key_fpr.c_str(), 0);
+    if(err != GPG_ERR_NO_ERROR) return -1;
+
+    err = gpgme_get_key(ctx, (char *) required_sig_keyid.c_str(), &user_key, 0);
+    if(err != GPG_ERR_NO_ERROR) return -1;
+
+    if (user_key) {
+        while (!(err = gpgme_op_keylist_next (ctx, &domain_key))) {
+            for (nuids=0, uid=domain_key->uids; uid; uid = uid->next, nuids++) {
+                for (nsigs=0, sig=uid->signatures; sig; sig = sig->next, nsigs++) {
+                    if (domain_key->disabled) {
+                        domain_key_valid = -2;
+                        break;
+                    }
+                    if (!strcmp(uid->name, (char *) domain.c_str()) && (uid_idx == nuids || uid_idx == -1)) {
+                        if (uid->revoked)
+                            domain_key_valid = -3;
+                        if (!strcmp(sig->keyid, (char *) required_sig_keyid.c_str())){
+                            if (user_key->owner_trust == GPGME_VALIDITY_ULTIMATE)
+                                domain_key_valid = 0;
+                            if (user_key->owner_trust == GPGME_VALIDITY_FULL)
+                                domain_key_valid = 2;
+                            if (user_key->expired)
+                                domain_key_valid++;
+                            if (sig->invalid)
+                                domain_key_valid = -4;
+                            if (sig->revoked)
+                                domain_key_valid = -4;
+                            if (sig->expired)
+                                domain_key_valid = -4;
+                            if (user_key->disabled)
+                                domain_key_valid = -5;
+                            if (sig->status == GPG_ERR_NO_PUBKEY)
+                                domain_key_valid = -1;
+                            if (sig->status == GPG_ERR_GENERAL)
+                                domain_key_valid = -1;
+                            // the key trust is 0 (best), stop searching
+                            if (domain_key_valid == 0)
+                                break;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (gpg_err_code (err) != GPG_ERR_EOF) return -1;
+        gpgme_get_key(ctx, (char *) domain_key_fpr.c_str(), &domain_key, 0);
+        err = gpgme_op_keylist_end (ctx);
+        if(err != GPG_ERR_NO_ERROR) return -1;
+
+        result = gpgme_op_keylist_result (ctx);
+        // the UID failed the signature test, check to see if the primary UID was signed
+        // by one permissible key, or a trusted key.
+        if (domain_key_valid == -1) {
+            for (nuids=0, uid=domain_key->uids; uid; uid = uid->next, nuids++) {
+                for (nsigs=0, sig=uid->signatures; sig; sig=sig->next, nsigs++) {
+                    if (!sig->status == GPG_ERR_NO_ERROR)
+                        continue;
+                    // the signature keyid matches the required_sig_keyid
+                    if (nuids == uid_idx && domain_key_valid == -1){
+                        err = gpgme_get_key(ctx, (char *) sig->keyid, &key, 0);
+                        if(err != GPG_ERR_NO_ERROR) return -1;
+                        err = gpgme_get_key(ctx, (char *) sig->keyid, &secret_key, 1);
+                        if(err != GPG_ERR_NO_ERROR) return -1;
+
+                        if (key && key->owner_trust == GPGME_VALIDITY_ULTIMATE) {
+                            if (!secret_key) {
+                                domain_key_valid = 8;
+                            } else {
+                                domain_key_valid = 4;
+                            }
+                        }
+                        if (key && key->owner_trust == GPGME_VALIDITY_FULL) {
+                            if (!secret_key) {
+                                domain_key_valid = 8;
+                            } else {
+                                domain_key_valid = 6;
+                            }
+                        }
+                        if (key && key->expired && domain_key_valid < -1)
+                            domain_key_valid += -1;
+                        if (key && key->expired && domain_key_valid >= 0) {
+                            domain_key_valid++;
+                        }
+                        if (sig->expired)
+                            domain_key_valid = -6;
+                        if (sig->invalid)
+                            domain_key_valid = -2;
+                        if (uid->revoked || sig->revoked)
+                            domain_key_valid = -6;
+                        if (sig->status == GPG_ERR_NO_PUBKEY)
+                            domain_key_valid = -1;
+                        if (sig->status == GPG_ERR_GENERAL)
+                            domain_key_valid = -1;
+                        if (key)
+                            gpgme_key_unref (key);
+                        if (secret_key)
+                            gpgme_key_unref (secret_key);
+                    }
+                    if (!strcmp(sig->keyid, (char *) required_sig_keyid.c_str())){
+                        if (nuids == 0) {
+                            if (user_key && user_key->owner_trust == GPGME_VALIDITY_ULTIMATE)
+                                domain_key_valid = 4;
+                            if (user_key && user_key->owner_trust == GPGME_VALIDITY_FULL)
+                                domain_key_valid = 6;
+                            if (user_key && user_key->expired)
+                                domain_key_valid++;
+                            if (sig->expired)
+                                domain_key_valid = -6;
+                            if (sig->invalid)
+                                domain_key_valid = -2;
+                            if (uid->revoked || sig->revoked)
+                                domain_key_valid = -6;
+                            if (sig->status == GPG_ERR_NO_PUBKEY)
+                                domain_key_valid = -1;
+                            if (sig->status == GPG_ERR_GENERAL)
+                                domain_key_valid = -1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (domain_key)
+        gpgme_key_unref (domain_key);
+    if (user_key)
+        gpgme_key_unref (user_key);
+
+    if (ctx)
+        gpgme_release (ctx);
+
+    return domain_key_valid;
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////
 /// @fn std::string webpgPluginAPI::get_version()

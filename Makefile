@@ -18,7 +18,7 @@ all: get-deps build
 .PHONY: all
 
 get-deps:
-	git submodule update init
+	git submodule update --init
 	git submodule update --recursive
 .PHONY: get-deps
 
