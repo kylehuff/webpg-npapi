@@ -25,13 +25,17 @@ get-deps:
 build:
 	@echo "Preparing build for $(OS)"
 ifeq ($(OS), WINDOWS)
-	./firebreath/prep$(VS_VERSION).cmd webpgPlugin build
+	cmd \/c .\\firebreath\\prep$(VS_VERSION).cmd\ webpgPlugin\ build
 else ifeq ($(OS), DARWIN)
 	./firebreath/prepmac.sh webpgPlugin build
 else
 	./firebreath/prepmake.sh webpgPlugin build
 endif
-	cmake --build build --target webpgPlugin
+ifeq ($(OS), WINDOWS)
+	cmake --build build --config MinSizeRel
+else
+	cmake --build build --target webpgPlugin --config MinSizeRel
+endif
 .PHONY: build
 
 clean:

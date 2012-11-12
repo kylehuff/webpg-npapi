@@ -316,7 +316,7 @@ gpgme_ctx_t webpgPluginAPI::get_gpgme_ctx()
     gpgme_engine_info_t engine_info = gpgme_ctx_get_engine_info (ctx);
     err = gpgme_ctx_set_engine_info (ctx, engine_info->protocol,
         (GNUPGBIN.length() > 0) ? file_name : engine_info->file_name,
-        (GNUPGHOME.c_str() > 0) ? home_dir : engine_info->home_dir);
+        (GNUPGHOME.length() > 0) ? home_dir : engine_info->home_dir);
 
 
     gpgme_set_textmode (ctx, 1);
