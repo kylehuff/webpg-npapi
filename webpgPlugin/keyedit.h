@@ -389,7 +389,7 @@ edit_fnc_assign_trust (void *opaque, gpgme_status_code_t status, const char *arg
                     break;
 
                 default:
-                    step = 0;
+                    step = -1;
                     response = (char *) "quit";
                     break;
             }
