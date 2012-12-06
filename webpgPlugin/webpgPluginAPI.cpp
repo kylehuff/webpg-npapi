@@ -80,10 +80,11 @@ static bool gpgme_invalid = false;
 ///
 /// @note if _EXTENSIONIZE is ture/nonnull, the plugin will only register the 
 ///         provided methods if the plugin was loaded from a page at URL
-///         "chrome://" (Mozilla products) or "chrome-extension://" (Google
-///         Chrome/Chromium) to prevent the plugin from being loaded by a
-///         public web page. This flag is set at compile time, and cannot be
-///         modified during operation.
+///         "chrome://" (Mozilla products), "chrome-extension://" (Google
+///         Chrome/Chromium), "widget://" (Opera) or "safari-extension://" to
+///         prevent the plugin from being loaded by a public web page.
+///         This flag is set at compile time, and cannot be modified during
+///         operation.
 ///////////////////////////////////////////////////////////////////////////////
 webpgPluginAPI::webpgPluginAPI(const webpgPluginPtr& plugin, const FB::BrowserHostPtr& host) : m_plugin(plugin), m_host(host)
 {
@@ -92,7 +93,12 @@ webpgPluginAPI::webpgPluginAPI(const webpgPluginPtr& plugin, const FB::BrowserHo
     std::string location = m_host->getDOMWindow()->getLocation();
     size_t firefox_ext = location.find("chrome://");
     size_t chrome_ext = location.find("chrome-extension://");
-    if (chrome_ext != std::string::npos || firefox_ext != std::string::npos)
+    size_t opera_ext = location.find("widget://");
+    size_t safari_ext = location.find("safari-extension://");
+    if (chrome_ext != std::string::npos ||
+        firefox_ext != std::string::npos ||
+        opera_ext != std::string::npos ||
+        safari_ext != std::string::npos)
         allow_op = true;
     else
         allow_op = false;
