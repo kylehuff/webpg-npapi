@@ -157,6 +157,15 @@ public:
     FB::variant getNamedKey(const std::string& name);
 
     ///////////////////////////////////////////////////////////////////////////////
+    /// @fn FB::variant webpgPluginAPI::getExternalKey(const std::string& name)
+    ///
+    /// @brief  Calls webpgPluginAPI::getKeyList() after setting the context to 
+    ///         external mode with a search string and the secret_only paramter as
+    ///         "0", which returns only Public Keys
+    ///////////////////////////////////////////////////////////////////////////////
+    FB::variant getExternalKey(const std::string& name);
+
+    ///////////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::getPublicKeyList()
     ///
     /// @brief  Calls webpgPluginAPI::getKeyList() without specifying a search
@@ -416,6 +425,15 @@ public:
     /// @param  ascii_key   An armored, ascii encoded PGP Key block.
     ///////////////////////////////////////////////////////////////////////////////
     FB::variant gpgImportKey(const std::string& ascii_key);
+
+    ///////////////////////////////////////////////////////////////////////////////
+    /// @fn FB::variant webpgPluginAPI::gpgImportExternalKey(const std::string& ascii_key)
+    ///
+    /// @brief  Imports the ASCII encoded key ascii_key
+    ///
+    /// @param  ascii_key   An armored, ascii encoded PGP Key block.
+    ///////////////////////////////////////////////////////////////////////////////
+    FB::variant gpgImportExternalKey(const std::string& key_id);
 
     ///////////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgDeleteKey(const std::string& keyid, int allow_secret)

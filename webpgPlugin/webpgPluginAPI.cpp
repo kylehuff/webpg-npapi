@@ -109,6 +109,7 @@ webpgPluginAPI::webpgPluginAPI(const webpgPluginPtr& plugin, const FB::BrowserHo
         registerMethod("getPublicKeyList", make_method(this, &webpgPluginAPI::getPublicKeyList));
         registerMethod("getPrivateKeyList", make_method(this, &webpgPluginAPI::getPrivateKeyList));
         registerMethod("getNamedKey", make_method(this, &webpgPluginAPI::getNamedKey));
+        registerMethod("getExternalKey", make_method(this, &webpgPluginAPI::getExternalKey));
         registerMethod("getDomainKey", make_method(this, &webpgPluginAPI::getNamedKey));
         registerMethod("verifyDomainKey", make_method(this, &webpgPluginAPI::verifyDomainKey));
         registerMethod("gpgSetPreference", make_method(this, &webpgPluginAPI::gpgSetPreference));
@@ -129,6 +130,7 @@ webpgPluginAPI::webpgPluginAPI(const webpgPluginPtr& plugin, const FB::BrowserHo
         registerMethod("gpgGenKey", make_method(this, &webpgPluginAPI::gpgGenKey));
         registerMethod("gpgGenSubKey", make_method(this, &webpgPluginAPI::gpgGenSubKey));
         registerMethod("gpgImportKey", make_method(this, &webpgPluginAPI::gpgImportKey));
+        registerMethod("gpgImportExternalKey", make_method(this, &webpgPluginAPI::gpgImportExternalKey));
         registerMethod("gpgDeletePublicKey", make_method(this, &webpgPluginAPI::gpgDeletePublicKey));
         registerMethod("gpgDeletePrivateKey", make_method(this, &webpgPluginAPI::gpgDeletePrivateKey));
         registerMethod("gpgDeletePrivateSubKey", make_method(this, &webpgPluginAPI::gpgDeletePrivateSubKey));
@@ -688,9 +690,19 @@ FB::VariantMap webpgPluginAPI::getKeyList(const std::string& name, int secret_on
         the keylist_mode 
         NOTE: The keylist mode flag GPGME_KEYLIST_MODE_SIGS 
             returns the signatures of UIDS with the key */
-    gpgme_set_keylist_mode (ctx, (gpgme_get_keylist_mode (ctx)
+    err = gpgme_set_keylist_mode (ctx, (gpgme_get_keylist_mode (ctx)
+                                | GPGME_KEYLIST_MODE_LOCAL
                                 | GPGME_KEYLIST_MODE_SIGS
                                 | GPGME_KEYLIST_MODE_VALIDATE));
+
+    if (EXTERNAL == 1) {
+        err = gpgme_set_keylist_mode (ctx, GPGME_KEYLIST_MODE_EXTERN
+                                        | GPGME_KEYLIST_MODE_SIGS);
+        EXTERNAL = 0;
+    }
+
+    if(err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
 
     /* gpgme_op_keylist_start (gpgme_ctx_t ctx, const char *pattern, int secret_only) */
     if (name.length() > 0){ // limit key listing to search criteria 'name'
@@ -939,6 +951,46 @@ FB::variant webpgPluginAPI::getNamedKey(const std::string& name)
         return keylist;
     }
 }
+
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::getExternalKey(const std::string& name)
+///
+/// @brief  Calls webpgPluginAPI::getKeyList() after setting the context to 
+///         external mode with a search string and the secret_only paramter as
+///         "0", which returns only Public Keys
+///////////////////////////////////////////////////////////////////////////////
+/*
+    This method just calls webpgPlugin.getKeyList with a name/email
+        as the parameter
+*/
+FB::variant webpgPluginAPI::getExternalKey(const std::string& name)
+{
+    EXTERNAL = 1;
+
+    // Retrieve the keylist as a VariantMap
+    FB::variant keylist = webpgPluginAPI::getKeyList(name, 0);
+
+    // Retrieve a reference to the DOM Window
+    FB::DOM::WindowPtr window = m_host->getDOMWindow();
+
+    // Check if the DOM Window has an in-built JSON Parser
+    if (window && window->getJSObject()->HasProperty("JSON")) {
+        // Convert the VariantMap to a Json::Value object
+        Json::Value json_value = FB::variantToJsonValue(keylist);
+
+        // Create a writer that will convert the object to a string
+        Json::FastWriter writer;
+
+        // Create a reference to the browswer JSON object
+        FB::JSObjectPtr obj = window->getProperty<FB::JSObjectPtr>("JSON");
+
+        return obj->Invoke("parse", FB::variant_list_of(writer.write(json_value)));
+    } else {
+        // No browser JSON parser detected, falling back to return of FB::variant
+        return keylist;
+    }
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////
 /// @fn bool webpgPluginAPI::gpgconf_detected()
@@ -2296,6 +2348,78 @@ FB::variant webpgPluginAPI::gpgImportKey(const std::string& ascii_key)
 		imports_map[i_to_str(nimports)] = import_item_map;
 	}
     status["imports"] = imports_map;
+    gpgme_release (ctx);
+
+    return status;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::gpgImportExternalKey(const std::string& key_id)
+///
+/// @brief  Imports a public key from the configured keyserver
+///
+/// @param  key_id   The KeyID of the Public Key to import
+///////////////////////////////////////////////////////////////////////////////
+FB::variant webpgPluginAPI::gpgImportExternalKey(const std::string& key_id)
+{
+    gpgme_ctx_t ctx = get_gpgme_ctx();
+    gpgme_error_t err;
+    gpgme_import_result_t result;
+    gpgme_key_t extern_key;
+    gpgme_key_t key_array[2];
+
+    err = gpgme_set_keylist_mode(ctx, GPGME_KEYLIST_MODE_EXTERN);
+
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_get_key(ctx, (char *) key_id.c_str(), &extern_key, 0);
+
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    key_array[0] = extern_key;
+    key_array[1] = NULL;
+
+    err = gpgme_op_import_keys (ctx, key_array);
+
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    result = gpgme_op_import_result (ctx);
+
+    FB::VariantMap status;
+
+    status["considered"] = result->considered;
+    status["no_user_id"] = result->no_user_id;
+    status["imported"] = result->imported;
+    status["imported_rsa"] = result->imported_rsa;
+    status["new_user_ids"] = result->new_user_ids;
+    status["new_sub_keys"] = result->new_sub_keys;
+    status["new_signatures"] = result->new_signatures;
+    status["new_revocations"] = result->new_revocations;
+    status["secret_read"] = result->secret_read;
+    status["secret_imported"] = result->secret_imported;
+    status["secret_unchanged"] = result->secret_unchanged;
+    status["not_imported"] = result->not_imported;
+
+    FB::VariantMap imports_map;
+    int nimports = 0;
+    gpgme_import_status_t import;
+    for (nimports=0, import=result->imports; import; import = import->next, nimports++) {
+        FB::VariantMap import_item_map;
+        import_item_map["fingerprint"] = nonnull (import->fpr);
+        import_item_map["result"] = gpgme_strerror(import->result);
+        import_item_map["status"] = import->status;
+        import_item_map["new_key"] = import->status & GPGME_IMPORT_NEW? true : false;
+        import_item_map["new_uid"] = import->status & GPGME_IMPORT_UID? true : false;
+        import_item_map["new_sig"] = import->status & GPGME_IMPORT_SIG? true : false;
+        import_item_map["new_subkey"] = import->status & GPGME_IMPORT_SUBKEY? true : false;
+        import_item_map["new_secret"] = import->status & GPGME_IMPORT_SECRET? true : false;
+		imports_map[i_to_str(nimports)] = import_item_map;
+	}
+    status["imports"] = imports_map;
+    gpgme_key_unref (extern_key);
     gpgme_release (ctx);
 
     return status;

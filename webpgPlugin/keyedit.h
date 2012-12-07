@@ -12,6 +12,7 @@
 //#else
 std::string GNUPGHOME;
 std::string GNUPGBIN;
+static int EXTERNAL;
 //#endif
 
 // A global holder for the current edit_fnc status
