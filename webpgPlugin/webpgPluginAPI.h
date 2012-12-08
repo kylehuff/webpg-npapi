@@ -574,9 +574,16 @@ public:
     ///////////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgExportPublicKey(const std::string& keyid)
     ///
-    /// @brief  Exports the public key specified with keyid as an armored ASCII encoded PGP Block.
+    /// @brief  Exports the public key specified with keyid as an ASCII armored encoded PGP Block.
     ///////////////////////////////////////////////////////////////////////////////
     FB::variant gpgExportPublicKey(const std::string& keyid);
+
+    ///////////////////////////////////////////////////////////////////////////////
+    /// @fn FB::variant webpgPluginAPI::gpgPublishPublicKey(const std::string& key_id)
+    ///
+    /// @brief  Exports the key specified by key_id to the configured keyserver
+    ///////////////////////////////////////////////////////////////////////////////
+    FB::variant gpgPublishPublicKey(const std::string& key_id);
 
     ///////////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgRevokeItem(const std::string& keyid, const std::string& item, int key_idx,

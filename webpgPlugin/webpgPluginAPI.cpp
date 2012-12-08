@@ -141,6 +141,7 @@ webpgPluginAPI::webpgPluginAPI(const webpgPluginPtr& plugin, const FB::BrowserHo
         registerMethod("gpgSetSubkeyExpire", make_method(this, &webpgPluginAPI::gpgSetSubkeyExpire));
         registerMethod("gpgSetPubkeyExpire", make_method(this, &webpgPluginAPI::gpgSetPubkeyExpire));
         registerMethod("gpgExportPublicKey", make_method(this, &webpgPluginAPI::gpgExportPublicKey));
+        registerMethod("gpgPublishPublicKey", make_method(this, &webpgPluginAPI::gpgPublishPublicKey));
         registerMethod("gpgRevokeKey", make_method(this, &webpgPluginAPI::gpgRevokeKey));
         registerMethod("gpgRevokeUID", make_method(this, &webpgPluginAPI::gpgRevokeUID));
         registerMethod("gpgRevokeSignature", make_method(this, &webpgPluginAPI::gpgRevokeSignature));
@@ -2973,6 +2974,51 @@ FB::variant webpgPluginAPI::gpgExportPublicKey(const std::string& keyid)
 
     response["error"] = false;
     response["result"] = out_buf;
+
+    return response;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::gpgPublishPublicKey(const std::string& key_id)
+///
+/// @brief  Exports the ASCII armored key specified by ascii_key to the configured keyserver
+///
+/// @param  keyid   The ID of the Public key to export.
+///
+/// @returns FB::variant response
+///////////////////////////////////////////////////////////////////////////////
+FB::variant webpgPluginAPI::gpgPublishPublicKey(const std::string& key_id)
+{
+    gpgme_ctx_t ctx = get_gpgme_ctx();
+    gpgme_error_t err;
+    gpgme_key_t key;
+    gpgme_key_t key_array[2];
+    FB::variant keydata;
+    gpgme_export_mode_t mode = 0;
+    FB::VariantMap response;
+
+    err = gpgme_get_key(ctx, (char *) key_id.c_str(), &key, 0);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    key_array[0] = key;
+    key_array[1] = NULL;
+
+    err = gpgme_set_keylist_mode (ctx, GPGME_KEYLIST_MODE_EXTERN);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    mode |= GPGME_KEYLIST_MODE_EXTERN;
+
+    err = gpgme_op_export_keys (ctx, key_array, mode, NULL);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    gpgme_key_unref (key);
+    gpgme_release (ctx);
+
+    response["error"] = false;
+    response["result"] = "Exported";
 
     return response;
 }
