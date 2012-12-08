@@ -4,7 +4,7 @@ Original Author: Kyle L. Huff (kylehuff)
 Created:    Jan 14, 2011
 License:    GNU General Public License, version 2
             http://www.gnu.org/licenses/gpl-2.0.html
-            
+
 Copyright 2011 Kyle L. Huff, CURETHEITCH development team
 \**********************************************************/
 
@@ -320,7 +320,7 @@ gpgme_ctx_t webpgPluginAPI::get_gpgme_ctx()
     if (GNUPGHOME.length() > 0) {
         home_dir = (char *) GNUPGHOME.c_str();
     }
-    
+
     err = gpgme_new (&ctx);
     gpgme_engine_info_t engine_info = gpgme_ctx_get_engine_info (ctx);
     err = gpgme_ctx_set_engine_info (ctx, engine_info->protocol,
@@ -1218,7 +1218,7 @@ FB::variant webpgPluginAPI::gpgGetPreference(const std::string& preference)
 response {
     "data":"—————BEGIN PGP MESSAGE—————
             Version: GnuPG v1.4.11 (GNU/Linux)
-            
+
             jA0EAwMC3hG5kEn899BgyWQW6CHxijX8Zw9oe1OAb7zlofpbVLXbvvyKWPKN3mSk
             i244qGDD8ReGbG87/w52pyNFHd8848TS5r5RwVyDaU8uGFg1XeUSyywAg4p5hg+v
             8Ad/SJfwG0WHXfX9HXoWdkQ+sRkl
@@ -1651,11 +1651,11 @@ FB::variant webpgPluginAPI::gpgVerify(const std::string& data)
 response {
     "data":"—————BEGIN PGP SIGNED MESSAGE—————
             Hash: SHA1
-            
+
             This is some text to sign...
             —————BEGIN PGP SIGNATURE—————
             Version: GnuPG v1.4.11 (GNU/Linux)
-            
+
             iQEcBAEBAgAGBQJQTQWwAAoJEMWZcR9egruTsp8H/A/qNCyzSsoVR+VeQQTEBcfi
             OpJkwQ5BCm2/5ZdlFATijaHe3s1C2OYUmncb3Z+OIIy8FNzCuMboNl83m5ro0Ng8
             IgSAcVJpLlVwbkAfGyWqmQ48yS7gDqb0pUSgkhEgCnMn+yDtFWPgAVTiKpuWJpf8
@@ -2948,7 +2948,6 @@ FB::variant webpgPluginAPI::gpgExportPublicKey(const std::string& keyid)
     gpgme_ctx_t ctx = get_gpgme_ctx();
     gpgme_error_t err;
     gpgme_data_t out = NULL;
-    FB::variant keydata;
     FB::VariantMap response;
 
     err = gpgme_data_new (&out);
@@ -2993,9 +2992,16 @@ FB::variant webpgPluginAPI::gpgPublishPublicKey(const std::string& key_id)
     gpgme_error_t err;
     gpgme_key_t key;
     gpgme_key_t key_array[2];
-    FB::variant keydata;
     gpgme_export_mode_t mode = 0;
     FB::VariantMap response;
+
+    FB::variant keyserver_option = webpgPluginAPI::gpgGetPreference("keyserver");
+    Json::Value json_value = FB::variantToJsonValue(keyserver_option);
+    if (json_value["value"] == "") {
+        response["error"] = true;
+        response["result"] = "No keyserver defined";
+        return response;
+    }
 
     err = gpgme_get_key(ctx, (char *) key_id.c_str(), &key, 0);
     if (err != GPG_ERR_NO_ERROR)
@@ -3010,7 +3016,7 @@ FB::variant webpgPluginAPI::gpgPublishPublicKey(const std::string& key_id)
 
     mode |= GPGME_KEYLIST_MODE_EXTERN;
 
-    err = gpgme_op_export_keys (ctx, key_array, mode, NULL);
+    err = gpgme_op_export_keys (ctx, key_array, mode, 0);
     if (err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
 
@@ -3074,6 +3080,7 @@ FB::variant webpgPluginAPI::gpgRevokeItem(const std::string& keyid, const std::s
     edit_status = "gpgRevokeItem(keyid='" + keyid + "', item='" + item + "', key_idx='" + 
         i_to_str(key_idx) + "', uid_idx='" + i_to_str(uid_idx) + "', sig_idx='" + i_to_str(sig_idx) +
         "', reason='" + i_to_str(reason) + "', desc='" + desc + "');\n";
+
     err = gpgme_op_edit (ctx, key, edit_fnc_revoke_item, out, out);
     if (err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
@@ -3254,7 +3261,7 @@ int webpgPluginAPI::verifyDomainKey(const std::string& domain,
     gpgme_key_sig_t sig;
     gpgme_error_t err;
     gpgme_keylist_result_t result;
-    
+
     gpgme_set_keylist_mode (ctx, (gpgme_get_keylist_mode (ctx) 
                                 | GPGME_KEYLIST_MODE_SIGS));
 
