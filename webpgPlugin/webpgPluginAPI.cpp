@@ -1075,7 +1075,7 @@ FB::variant webpgPluginAPI::gpgSetPreference(const std::string& preference, cons
     if (err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
 
-    gpgme_conf_arg_t original_arg, arg;
+    gpgme_conf_arg_t original_arg, arg, temparg, last;
     gpgme_conf_opt_t opt;
 
     if (pref_value.length())
@@ -1108,6 +1108,45 @@ FB::variant webpgPluginAPI::gpgSetPreference(const std::string& preference, cons
             return_code = "blank";
         }
 
+        int new_value = 1;
+
+        if (preference == "group") {
+            std::string group_value;
+            std::string group_name;
+            // Determine the name of the target group
+            group_name = pref_value.substr(0, pref_value.find("=") - 1);
+            // iterate through the values of original_arg
+            while (original_arg) {
+                group_value = original_arg->value.string;
+                if (group_value.find(group_name + " =") != std::string::npos) {
+                    // This is the target group;
+                    if (pref_value.length() > group_value.length() + 3) {
+                        err = gpgme_conf_arg_new (&arg, GPGME_CONF_STRING, NULL);
+                    }
+                    original_arg->value = arg->value;
+                    new_value = 0;
+                } else {
+                    // Not the target group, add this arg to the option
+                    original_arg->value = original_arg->value;
+                }
+                last = original_arg;
+                original_arg = original_arg->next;
+            }
+        }
+
+        if (new_value == 1) {
+            last->next = arg;
+        }
+
+        temparg = opt->value;
+        while(temparg) {
+            return_code += temparg->value.string;
+            temparg = temparg->next;
+            if (temparg) {
+                return_code += ", ";
+            }
+        }
+
         /* if the new argument and original argument are the same, return 0, 
             there is nothing to do. */
         if (pref_value.length() && original_arg && 
@@ -1116,6 +1155,9 @@ FB::variant webpgPluginAPI::gpgSetPreference(const std::string& preference, cons
         }
 
         if (opt) {
+            if (preference == "group")
+                arg = opt->value;
+
             if (!strcmp(pref_value.c_str(), "blank") || pref_value.length() < 1)
                 err = gpgme_conf_opt_change (opt, 0, NULL);
             else
@@ -1127,6 +1169,9 @@ FB::variant webpgPluginAPI::gpgSetPreference(const std::string& preference, cons
             err = gpgme_op_conf_save (ctx, comp);
             if (err != GPG_ERR_NO_ERROR)
                 return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+            if (preference == "group")
+                return return_code;
         }
     }
 
@@ -1162,6 +1207,7 @@ FB::variant webpgPluginAPI::gpgGetPreference(const std::string& preference)
     gpgme_conf_comp_t conf, comp;
     FB::VariantMap response;
     response["error"] = false;
+    std::string res;
 
     err = gpgme_op_conf_load (ctx, &conf);
     if (err != GPG_ERR_NO_ERROR)
@@ -1184,7 +1230,13 @@ FB::variant webpgPluginAPI::gpgGetPreference(const std::string& preference)
         if (opt) {
             if (opt->value) {
                 arg = opt->value;
-                response["value"] = strdup(arg->value.string);
+                while (arg) {
+                    res += arg->value.string;
+                    arg = arg->next;
+                    if (arg)
+                        res += ", ";
+                }
+                response["value"] = res;
             } else {
                 response["value"] = "";
             }
@@ -1783,7 +1835,7 @@ FB::variant webpgPluginAPI::gpgSignUID(const std::string& keyid, long sign_uid,
     current_uid = i_to_str(sign_uid);
 
     /* set the default key to the with_keyid 
-        gpgSetPreference returns the orginal value (if any) of
+        gpgSetPreference returns the original value (if any) of
         the 'default-key' configuration parameter. We will put
         this into a variable so we can restore the setting when
         our UID Signing operation is complete (or failed)
