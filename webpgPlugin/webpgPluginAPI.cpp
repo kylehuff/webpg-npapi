@@ -212,6 +212,7 @@ void webpgPluginAPI::init()
     FB::VariantMap response;
     FB::VariantMap protocol_info, plugin_info;
     gpgme_engine_info_t engine_info;
+    std::string engine_version;
 
     plugin_info["source_url"] = m_host->getDOMWindow()->getLocation();
     plugin_info["path"] = getPlugin()->getPluginPath();
@@ -250,16 +251,16 @@ void webpgPluginAPI::init()
         response["error_map"] = error_map;
         webpgPluginAPI::webpg_status_map = error_map;
         gpgme_invalid = true;
-        return;
     }
 
     ctx = get_gpgme_ctx();
 
     response["error"] = false;
-    response["gpgme_valid"] = true;
     response["gpgconf_detected"] = gpgconf_detected();
+
     if (!gpgconf_detected())
         response["gpgconf_response"] = gpgme_strerror (gpgme_engine_check_version (GPGME_PROTOCOL_GPGCONF));
+
     response["gpgme_version"] = gpgme_version;
     engine_info = gpgme_ctx_get_engine_info (ctx);
     if (engine_info) {
@@ -275,6 +276,17 @@ void webpgPluginAPI::init()
     } else {
         response["OpenPGP"] = get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
     }
+
+    engine_version = (engine_info) ? (engine_info->version) ?
+        (char *) engine_info->version : "" : "";
+
+    if (engine_version.length() > 0) {
+        response["openpgp_valid"] = true;
+        response["error"] = false;
+        gpgme_invalid = false;
+    } else {
+        return;
+    }    
 
     response["GNUPGHOME"] = GNUPGHOME;
 
@@ -527,7 +539,6 @@ webpg_status_map {
     "error":false,
     "gpg_agent_info":"/tmp/keyring-5FZWyz/gpg:0:1",
     "gpgconf_detected":true,
-    "gpgme_valid":true,
     "gpgme_version":"1.3.2",
     "plugin":{
         "params":{
