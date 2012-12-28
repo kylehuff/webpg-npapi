@@ -40,6 +40,15 @@ public:
     {
         webpgPlugin::StaticDeinitialize();
     }
+
+    void getLoggingMethods(FB::Log::LogMethodList& outMethods)
+    {
+        // The next line will enable logging to the console (think: printf).
+        outMethods.push_back(std::make_pair(FB::Log::LogMethod_Console, std::string()));
+     
+        // The next line will enable logging to a logfile.
+        //outMethods.push_back(std::make_pair(FB::Log::LogMethod_File, "/tmp/baz.log"));
+    }
 };
 
 ///////////////////////////////////////////////////////////////////////////////

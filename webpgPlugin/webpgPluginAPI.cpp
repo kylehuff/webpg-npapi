@@ -31,6 +31,15 @@ FB::VariantMap get_error_map(const std::string& method,
                         int line, const std::string& file,
                         std::string data="")
 {
+    std::string debug_msg = "gpg_error_code: ";
+    debug_msg += gpg_error_code;
+    debug_msg += " error_string: ";
+    debug_msg += error_string;
+    debug_msg += " line: ";
+    debug_msg += line;
+    debug_msg += "data: ";
+    debug_msg += data;
+    FBLOG_DEBUG("get_error_map", debug_msg);
     FB::VariantMap error_map_obj;
     error_map_obj["error"] = true;
     error_map_obj["method"] = method;
@@ -114,6 +123,7 @@ webpgPluginAPI::webpgPluginAPI(const webpgPluginPtr& plugin, const FB::BrowserHo
         registerMethod("verifyDomainKey", make_method(this, &webpgPluginAPI::verifyDomainKey));
         registerMethod("gpgSetPreference", make_method(this, &webpgPluginAPI::gpgSetPreference));
         registerMethod("gpgGetPreference", make_method(this, &webpgPluginAPI::gpgGetPreference));
+        registerMethod("gpgSetGroup", make_method(this, &webpgPluginAPI::gpgSetGroup));
         registerMethod("gpgSetHomeDir", make_method(this, &webpgPluginAPI::gpgSetHomeDir));
         registerMethod("gpgGetHomeDir", make_method(this, &webpgPluginAPI::gpgGetHomeDir));
         registerMethod("gpgSetBinary", make_method(this, &webpgPluginAPI::gpgSetBinary));
@@ -206,6 +216,7 @@ webpgPluginPtr webpgPluginAPI::getPlugin()
 ///////////////////////////////////////////////////////////////////////////////
 void webpgPluginAPI::init()
 {
+    FBLOG_INFO(__func__, "Begin WebPG Initialization");
     gpgme_ctx_t ctx;
     gpgme_error_t err;
     FB::VariantMap error_map;
@@ -1086,7 +1097,7 @@ FB::variant webpgPluginAPI::gpgSetPreference(const std::string& preference, cons
     if (err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
 
-    gpgme_conf_arg_t original_arg, arg, temparg, last;
+    gpgme_conf_arg_t original_arg, arg;
     gpgme_conf_opt_t opt;
 
     if (pref_value.length())
@@ -1112,50 +1123,10 @@ FB::variant webpgPluginAPI::gpgSetPreference(const std::string& preference, cons
             return "unable to locate that option in this context";
         }
 
-        if (opt->value && pref_value.length()) {
-            original_arg = opt->value;
-        } else {
-            original_arg = opt->value;
+        original_arg = opt->value;
+
+        if (!opt->value && pref_value.length() > 1) {
             return_code = "blank";
-        }
-
-        int new_value = 1;
-
-        if (preference == "group") {
-            std::string group_value;
-            std::string group_name;
-            // Determine the name of the target group
-            group_name = pref_value.substr(0, pref_value.find("=") - 1);
-            // iterate through the values of original_arg
-            while (original_arg) {
-                group_value = original_arg->value.string;
-                if (group_value.find(group_name + " =") != std::string::npos) {
-                    // This is the target group;
-                    if (pref_value.length() > group_value.length() + 3) {
-                        err = gpgme_conf_arg_new (&arg, GPGME_CONF_STRING, NULL);
-                    }
-                    original_arg->value = arg->value;
-                    new_value = 0;
-                } else {
-                    // Not the target group, add this arg to the option
-                    original_arg->value = original_arg->value;
-                }
-                last = original_arg;
-                original_arg = original_arg->next;
-            }
-        }
-
-        if (new_value == 1) {
-            last->next = arg;
-        }
-
-        temparg = opt->value;
-        while(temparg) {
-            return_code += temparg->value.string;
-            temparg = temparg->next;
-            if (temparg) {
-                return_code += ", ";
-            }
         }
 
         /* if the new argument and original argument are the same, return 0, 
@@ -1166,9 +1137,6 @@ FB::variant webpgPluginAPI::gpgSetPreference(const std::string& preference, cons
         }
 
         if (opt) {
-            if (preference == "group")
-                arg = opt->value;
-
             if (!strcmp(pref_value.c_str(), "blank") || pref_value.length() < 1)
                 err = gpgme_conf_opt_change (opt, 0, NULL);
             else
@@ -1193,7 +1161,145 @@ FB::variant webpgPluginAPI::gpgSetPreference(const std::string& preference, cons
         gpgme_release (ctx);
 
     if (!return_code.length())
-        return_code = strdup(original_arg->value.string);
+        return_code = original_arg->value.string;
+
+    return return_code;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::gpgSetGroup(const std::string& group, const std::string& group_value)
+///
+/// @brief  Attempts to define or clear the specified group preference with the value
+///         of group_value.
+///
+/// @param  group  The group to set.
+/// @param  group_value  The value to assign to the specified group. 
+///////////////////////////////////////////////////////////////////////////////
+FB::variant webpgPluginAPI::gpgSetGroup(const std::string& group, const std::string& group_value)
+{
+	gpgme_error_t err;
+	gpgme_protocol_t proto = GPGME_PROTOCOL_OpenPGP;
+    err = gpgme_engine_check_version (proto);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    gpgme_ctx_t ctx = get_gpgme_ctx();
+    gpgme_conf_comp_t conf, comp;
+    FB::variant response;
+    std::string return_code;
+    bool modify_existing = false;
+    bool value_exists = false;
+
+    err = gpgme_op_conf_load (ctx, &conf);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    gpgme_conf_arg_t original_arg, arg, temparg, last;
+    gpgme_conf_opt_t opt, newopt;
+
+    std::string group_arg = group;
+    group_arg += " = ";
+    group_arg += group_value;
+
+    if (group_value.length())
+        err = gpgme_conf_arg_new (&arg, GPGME_CONF_STRING, (char *) group_arg.c_str());
+    else
+        err = gpgme_conf_arg_new (&arg, GPGME_CONF_STRING, NULL);
+
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    comp = conf;
+    while (comp && strcmp (comp->name, "gpg"))
+        comp = comp->next;
+
+    if (comp) {
+        opt = comp->options;
+
+        while (opt && strcmp (opt->name, "group")){
+            opt = opt->next;
+        }
+
+        if (!opt) {
+            return "unable to locate that option in this context";
+        }
+
+        original_arg = opt->value;
+
+        if (!opt->value && group_value.length() > 1) {
+            return_code = "blank";
+        }
+
+        std::string cgroup_value;
+        std::string cgroup_name;
+        // Determine the name of the target group
+        cgroup_name = group_value.substr(0, group_value.find("=") - 1);
+
+        if (original_arg) {
+            // There are current groups defined, iterate through
+            // the values and check if the named group exists
+            while (original_arg) {
+                cgroup_value = original_arg->value.string;
+                // This is the target group, we will be modifying it
+                if (cgroup_value.find(group + " =") != std::string::npos) {
+                    // Check if the new value is blank/empty
+//                    if (group_value == "blank" || group_value.length() < 1) {
+//                    }
+                    original_arg->value.string = (char *) group_arg.c_str();
+                    modify_existing = true;
+                    value_exists = true;
+                } else {
+                    // Not the target group, add this arg to the option
+                    original_arg->value = original_arg->value;
+                }
+                last = original_arg;
+                original_arg = original_arg->next;
+            }
+            if (!value_exists)
+                if (group_value == "blank" || group_value.length() < 1)
+                    return "no such group defined...";
+            if (!modify_existing) {
+                // Append the arg
+                last->next = arg;
+            }
+        } else {
+            if (group_value == "blank" || group_value.length() < 1)
+                return "blank";
+            opt->value = arg;
+        }
+
+        temparg = opt->value;
+        while(temparg) {
+            return_code += temparg->value.string;
+            temparg = temparg->next;
+            if (temparg) {
+                return_code += ", ";
+            }
+        }
+
+        /* if the new argument and original argument are the same, return 0, 
+            there is nothing to do. */
+        if (group_value.length() && original_arg && 
+            !strcmp (original_arg->value.string, arg->value.string)) {
+            return "0";
+        }
+
+        if (opt) {
+            arg = opt->value;
+
+            err = gpgme_conf_opt_change (opt, 0, arg);
+
+            if (err != GPG_ERR_NO_ERROR)
+                return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+            err = gpgme_op_conf_save (ctx, comp);
+            if (err != GPG_ERR_NO_ERROR)
+                return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+        }
+    }
+
+    if (!return_code.length())
+        return_code = original_arg->value.string;
 
     return return_code;
 }
@@ -1374,6 +1480,8 @@ FB::variant webpgPluginAPI::gpgEncrypt(const std::string& data,
     // NULL terminate the key array
     key[enc_to_keyids.size()] = NULL;
 
+    setTempGPGOption("force-mdc", "");
+
     if (sign) {
         if (enc_to_keyids.size() < 1) {
             // NOTE: This doesn't actually work due to an issue with gpgme-1.3.2.
@@ -1391,6 +1499,8 @@ FB::variant webpgPluginAPI::gpgEncrypt(const std::string& data,
             err = gpgme_op_encrypt (ctx, key, GPGME_ENCRYPT_ALWAYS_TRUST, in, out);
         }
     }
+
+    restoreGPGConfig();
 
     if (err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
@@ -2164,18 +2274,16 @@ std::string webpgPluginAPI::gpgGenKeyWorker(const std::string& key_type, const s
 
     if (!result)
     {
-#ifdef DEBUG
-        fprintf (stderr, "%s:%d: gpgme_op_genkey_result returns NULL\n",
-           __FILE__, __LINE__);
-#endif
+        FBLOG_DEBUG("get_error_map", "gpgme_op_genkey_result returned NULL");
         return "error with result";
     }
 
-#ifdef DEBUG
-    printf ("Generated key: %s (%s)\n", result->fpr ? result->fpr : "none",
-        result->primary ? (result->sub ? "primary, sub" : "primary")
-        : (result->sub ? "sub" : "none"));
-#endif
+    std::string msg = result->fpr ? result->fpr : "none";
+    msg += " (";
+    msg += result->primary ? (result->sub ? "primary, sub" : "primary")
+        : (result->sub ? "sub" : "none");
+    msg += ")";
+    FBLOG_DEBUG("genkey", msg);
 
     gpgme_release (ctx);
     const char* status = (char *) "complete";

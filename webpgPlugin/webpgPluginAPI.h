@@ -60,7 +60,6 @@ Copyright 2011 Kyle L. Huff, CURETHEITCH development team
 #include <sstream>
 #include <iostream>
 #include <fstream>
-#include <boost/weak_ptr.hpp>
 #include "JSAPIAuto.h"
 #include "BrowserHost.h"
 #include "webpgPlugin.h"
@@ -203,7 +202,19 @@ public:
     /// @param  pref_value  The value to assign to the specified preference. 
     ///////////////////////////////////////////////////////////////////////////////
     FB::variant gpgSetPreference(const std::string& preference,
-        const std::string& pref_value="");
+        const std::string& pref_value="blank");
+
+    ///////////////////////////////////////////////////////////////////////////////
+    /// @fn FB::variant webpgPluginAPI::gpgSetGroup(const std::string& group, const std::string& group_value)
+    ///
+    /// @brief  Attempts to define or clear the specified group preference with the value
+    ///         of group_value.
+    ///
+    /// @param  group  The group to set.
+    /// @param  group_value  The value to assign to the specified group. 
+    ///////////////////////////////////////////////////////////////////////////////
+    FB::variant gpgSetGroup(const std::string& group,
+        const std::string& group_value="");
 
     ///////////////////////////////////////////////////////////////////////////////
     /// @fn std::string webpgPluginAPI::gpgGetPreference(const std::string& preference)
