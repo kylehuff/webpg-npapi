@@ -271,6 +271,15 @@ public:
     FB::variant gpgGetBinary();
 
     ///////////////////////////////////////////////////////////////////////////////
+    /// @fn FB::variant webpgPluginAPI::gpgSetGPGConf(const std::string& gpgconf_exec)
+    ///
+    /// @brief  Sets the GPGCONF static variable to the path specified in 
+    ///         gpgconf_exec.
+    ///////////////////////////////////////////////////////////////////////////////
+    FB::variant gpgSetGPGConf(const std::string& gpgconf_exec);
+    FB::variant gpgGetGPGConf();
+
+    ///////////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::getTemporaryPath()
     ///
     /// @brief  Attempts to determine the system or user temporary path.

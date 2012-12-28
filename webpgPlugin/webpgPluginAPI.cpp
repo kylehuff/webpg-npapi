@@ -128,6 +128,8 @@ webpgPluginAPI::webpgPluginAPI(const webpgPluginPtr& plugin, const FB::BrowserHo
         registerMethod("gpgGetHomeDir", make_method(this, &webpgPluginAPI::gpgGetHomeDir));
         registerMethod("gpgSetBinary", make_method(this, &webpgPluginAPI::gpgSetBinary));
         registerMethod("gpgGetBinary", make_method(this, &webpgPluginAPI::gpgGetBinary));
+        registerMethod("gpgSetGPGConf", make_method(this, &webpgPluginAPI::gpgSetGPGConf));
+        registerMethod("gpgGetGPGConf", make_method(this, &webpgPluginAPI::gpgGetGPGConf));
         registerMethod("gpgEncrypt", make_method(this, &webpgPluginAPI::gpgEncrypt));
         registerMethod("gpgSymmetricEncrypt", make_method(this, &webpgPluginAPI::gpgSymmetricEncrypt));
         registerMethod("gpgDecrypt", make_method(this, &webpgPluginAPI::gpgDecrypt));
@@ -236,8 +238,13 @@ void webpgPluginAPI::init()
     std::string location = m_host->getDOMWindow()->getLocation();
     size_t firefox_ext = location.find("chrome://");
     size_t chrome_ext = location.find("chrome-extension://");
-    response["extension"] = (chrome_ext != std::string::npos) ?
-        "chrome" : (firefox_ext != std::string::npos) ? "firefox" : "unknown";
+    size_t opera_ext = location.find("widget://");
+    size_t safari_ext = location.find("safari-extension://");
+    response["extension"] =
+        (chrome_ext != std::string::npos) ? "chrome" :
+        (firefox_ext != std::string::npos) ? "firefox" :
+        (opera_ext != std::string::npos) ? "opera" :
+        (safari_ext != std::string::npos) ? "safari" : "unknown";
 #endif
 
     /* Initialize the locale environment.
@@ -266,14 +273,19 @@ void webpgPluginAPI::init()
 
     ctx = get_gpgme_ctx();
 
+    // Check the GPGCONF variable, if not null, set the GPGCONF
+    //  engine to use that path
+    if (GPGCONF.length() > 0) {
+        err = gpgme_set_engine_info (GPGME_PROTOCOL_GPGCONF,
+            (char *) GPGCONF.c_str(), NULL);
+    }
+
     response["error"] = false;
     response["gpgconf_detected"] = gpgconf_detected();
 
-    if (!gpgconf_detected())
-        response["gpgconf_response"] = gpgme_strerror (gpgme_engine_check_version (GPGME_PROTOCOL_GPGCONF));
-
     response["gpgme_version"] = gpgme_version;
     engine_info = gpgme_ctx_get_engine_info (ctx);
+
     if (engine_info) {
         if (engine_info->file_name)
             protocol_info["file_name"] = (char *) engine_info->file_name;
@@ -298,6 +310,27 @@ void webpgPluginAPI::init()
     } else {
         return;
     }    
+
+    err = gpgme_get_engine_info (&engine_info);
+
+    if (!err) {
+        while (engine_info) {
+            protocol_info["file_name"].reset();
+            protocol_info["version"].reset();
+            protocol_info["home_dir"].reset();
+            protocol_info["req_version"].reset();
+            if (engine_info->file_name)
+                protocol_info["file_name"] = (char *) engine_info->file_name;
+            if (engine_info->version)
+                protocol_info["version"] = (char *) engine_info->version;
+            if (engine_info->home_dir)
+                protocol_info["home_dir"] = (char *) engine_info->home_dir;
+            if (engine_info->req_version)
+                protocol_info["req_version"] = (char *) engine_info->req_version;
+            response[(char *) gpgme_get_protocol_name (engine_info->protocol)] = protocol_info;
+            engine_info = engine_info->next;
+        }
+    }
 
     response["GNUPGHOME"] = GNUPGHOME;
 
@@ -349,7 +382,6 @@ gpgme_ctx_t webpgPluginAPI::get_gpgme_ctx()
     err = gpgme_ctx_set_engine_info (ctx, engine_info->protocol,
         (GNUPGBIN.length() > 0) ? file_name : engine_info->file_name,
         (GNUPGHOME.length() > 0) ? home_dir : NULL);
-
 
     gpgme_set_textmode (ctx, 1);
     gpgme_set_armor (ctx, 1);
@@ -512,6 +544,23 @@ FB::variant webpgPluginAPI::gpgSetBinary(const std::string& gnupg_exec)
 FB::variant webpgPluginAPI::gpgGetBinary()
 {
     return GNUPGBIN;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant webpgPluginAPI::gpgSetGPGConf(const std::string& gpgconf_exec)
+///
+/// @brief  Sets the GPGCONF static variable to the path specified in 
+///         gpgconf_exec.
+///////////////////////////////////////////////////////////////////////////////
+FB::variant webpgPluginAPI::gpgSetGPGConf(const std::string& gpgconf_exec)
+{
+    GPGCONF = gpgconf_exec;
+    return GPGCONF;
+}
+
+FB::variant webpgPluginAPI::gpgGetGPGConf()
+{
+    return GPGCONF;
 }
 
 

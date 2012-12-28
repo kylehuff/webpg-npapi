@@ -12,6 +12,7 @@
 //#else
 std::string GNUPGHOME;
 std::string GNUPGBIN;
+std::string GPGCONF;
 static int EXTERNAL;
 //#endif
 
