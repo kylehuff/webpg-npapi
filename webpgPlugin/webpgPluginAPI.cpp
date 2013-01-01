@@ -312,6 +312,7 @@ void webpgPluginAPI::init()
     }    
 
     err = gpgme_get_engine_info (&engine_info);
+    std::string proto_name;
 
     if (!err) {
         while (engine_info) {
@@ -327,7 +328,15 @@ void webpgPluginAPI::init()
                 protocol_info["home_dir"] = (char *) engine_info->home_dir;
             if (engine_info->req_version)
                 protocol_info["req_version"] = (char *) engine_info->req_version;
-            response[(char *) gpgme_get_protocol_name (engine_info->protocol)] = protocol_info;
+
+            proto_name = (engine_info->protocol == GPGME_PROTOCOL_OpenPGP) ? "OpenPGP"
+                : (engine_info->protocol == GPGME_PROTOCOL_CMS) ? "CMS"
+                : (engine_info->protocol == GPGME_PROTOCOL_GPGCONF) ? "GPGCONF"
+                : (engine_info->protocol == GPGME_PROTOCOL_ASSUAN) ? "Assuan"
+                : "UNKNOWN";
+
+            response[proto_name] = protocol_info;
+
             engine_info = engine_info->next;
         }
     }
