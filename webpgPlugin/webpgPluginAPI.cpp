@@ -1645,7 +1645,7 @@ FB::variant webpgPluginAPI::gpgSymmetricEncrypt(const std::string& data,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-/// @fn FB::variant webpgPluginAPI::gpgDecryptVerify(const std::string& data, int use_agent)
+/// @fn FB::variant webpgPluginAPI::gpgDecryptVerify(const std::string& data, const std::string& plaintext, int use_agent)
 ///
 /// @brief  Attempts to decrypt and verify the string data. If use_agent
 ///         is 0, it will attempt to disable the key-agent to prevent the
@@ -1655,6 +1655,7 @@ FB::variant webpgPluginAPI::gpgSymmetricEncrypt(const std::string& data,
 ///
 /// @param  data    The data to decrypt and/or verify.
 /// @param  use_agent   Attempt to disable the gpg-agent
+/// @param  plaintext   The plaintext of a detached signature.
 ///
 /// @returns FB::variant response
 /*! @verbatim
@@ -1675,14 +1676,14 @@ response {
 @endverbatim
 */
 ///////////////////////////////////////////////////////////////////////////////
-FB::variant webpgPluginAPI::gpgDecryptVerify(const std::string& data, int use_agent)
+FB::variant webpgPluginAPI::gpgDecryptVerify(const std::string& data, const std::string& plaintext, int use_agent)
 {
     gpgme_ctx_t ctx;
     gpgme_error_t err;
     gpgme_decrypt_result_t decrypt_result;
     gpgme_verify_result_t verify_result;
     gpgme_signature_t sig;
-    gpgme_data_t in, out;
+    gpgme_data_t in, out, plain;
     std::string out_buf;
     std::string envvar;
     FB::VariantMap response;
@@ -1690,7 +1691,6 @@ FB::variant webpgPluginAPI::gpgDecryptVerify(const std::string& data, int use_ag
     int tnsigs = 0;
     char buf[513];
     int ret;
-
     char *agent_info = getenv("GPG_AGENT_INFO");
 
     if (use_agent == 0) {
@@ -1728,7 +1728,18 @@ FB::variant webpgPluginAPI::gpgDecryptVerify(const std::string& data, int use_ag
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
     }
 
-    err = gpgme_op_decrypt_verify (ctx, in, out);
+    if (plaintext.length() > 0) {
+        err = gpgme_data_new_from_mem (&plain, plaintext.c_str(), plaintext.length(), 0);
+        if (err != GPG_ERR_NO_ERROR) {
+            return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+        }
+        gpgme_data_seek (plain, 0, SEEK_SET);
+        gpgme_data_seek (in, 0, SEEK_SET);
+        edit_status = "Made it thus far...";
+        err = gpgme_op_verify (ctx, in, plain, NULL);
+    } else {
+        err = gpgme_op_decrypt_verify (ctx, in, out);
+    }
 
     decrypt_result = gpgme_op_decrypt_result (ctx);
     verify_result = gpgme_op_verify_result (ctx);
@@ -1859,12 +1870,15 @@ FB::variant webpgPluginAPI::gpgDecryptVerify(const std::string& data, int use_ag
 ///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgDecrypt(const std::string& data)
 {
-    return webpgPluginAPI::gpgDecryptVerify(data, 1);
+    return webpgPluginAPI::gpgDecryptVerify(data, "", 1);
 }
 
-FB::variant webpgPluginAPI::gpgVerify(const std::string& data)
+FB::variant webpgPluginAPI::gpgVerify(const std::string& data, const std::string& plaintext)
 {
-    return webpgPluginAPI::gpgDecryptVerify(data, 0);
+    if (plaintext.length() > 0)
+        return webpgPluginAPI::gpgDecryptVerify(data, plaintext, 0);
+    else
+        return webpgPluginAPI::gpgDecryptVerify(data, "", 0);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

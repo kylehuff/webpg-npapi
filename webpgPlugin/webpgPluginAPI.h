@@ -314,7 +314,7 @@ public:
         bool sign=false);
 
     ///////////////////////////////////////////////////////////////////////////////
-    /// @fn FB::variant webpgPluginAPI::gpgDecryptVerify(const std::string& data, int use_agent)
+    /// @fn FB::variant webpgPluginAPI::gpgDecryptVerify(const std::string& data, const std::string& plaintext, int use_agent)
     ///
     /// @brief  Attempts to decrypt and verify the string data. If use_agent
     ///         is 0, it will attempt to disable the key-agent to prevent the
@@ -323,9 +323,10 @@ public:
     ///         (i.e. in an automated parsing environment).
     ///
     /// @param  data    The data to decrypt and/or verify.
-    /// @param  use_agent   Attempt to disable the gpg-agent
+    /// @param  plaintext   The plaintext of a detached signature.
+    /// @param  use_agent   Attempt to disable the gpg-agent.
     ///////////////////////////////////////////////////////////////////////////////
-    FB::variant gpgDecryptVerify(const std::string& data, int use_agent);
+    FB::variant gpgDecryptVerify(const std::string& data, const std::string& plaintext, int use_agent);
 
     ///////////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgDecrypt(const std::string& data)
@@ -337,7 +338,7 @@ public:
     ///////////////////////////////////////////////////////////////////////////////
     FB::variant gpgDecrypt(const std::string& data);
 
-    FB::variant gpgVerify(const std::string& data);
+    FB::variant gpgVerify(const std::string& data, const std::string& plaintext);
 
     ///////////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgSignText(FB::VariantList& signers, const std::string& plain_text, int sign_mode)
