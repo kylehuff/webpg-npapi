@@ -1873,10 +1873,10 @@ FB::variant webpgPluginAPI::gpgDecrypt(const std::string& data)
     return webpgPluginAPI::gpgDecryptVerify(data, "", 1);
 }
 
-FB::variant webpgPluginAPI::gpgVerify(const std::string& data, const std::string& plaintext)
+FB::variant webpgPluginAPI::gpgVerify(const std::string& data, const boost::optional<std::string>& plaintext)
 {
-    if (plaintext.length() > 0)
-        return webpgPluginAPI::gpgDecryptVerify(data, plaintext, 0);
+    if (plaintext)
+        return webpgPluginAPI::gpgDecryptVerify(data, *plaintext, 0);
     else
         return webpgPluginAPI::gpgDecryptVerify(data, "", 0);
 }

@@ -62,6 +62,7 @@ Copyright 2011 Kyle L. Huff, CURETHEITCH development team
 #include <fstream>
 #include "JSAPIAuto.h"
 #include "BrowserHost.h"
+#include <boost/optional.hpp>
 #include "webpgPlugin.h"
 
 #ifdef HAVE_W32_SYSTEM
@@ -338,7 +339,7 @@ public:
     ///////////////////////////////////////////////////////////////////////////////
     FB::variant gpgDecrypt(const std::string& data);
 
-    FB::variant gpgVerify(const std::string& data, const std::string& plaintext);
+    FB::variant gpgVerify(const std::string& data, const boost::optional<std::string>& plaintext);
 
     ///////////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgSignText(FB::VariantList& signers, const std::string& plain_text, int sign_mode)
