@@ -39,7 +39,7 @@ FB::VariantMap get_error_map(const std::string& method,
     debug_msg += line;
     debug_msg += "data: ";
     debug_msg += data;
-    FBLOG_DEBUG("get_error_map", debug_msg);
+//    FBLOG_DEBUG("get_error_map", debug_msg);
     FB::VariantMap error_map_obj;
     error_map_obj["error"] = true;
     error_map_obj["method"] = method;
@@ -309,7 +309,7 @@ void webpgPluginAPI::init()
         gpgme_invalid = false;
     } else {
         return;
-    }    
+    }
 
     err = gpgme_get_engine_info (&engine_info);
     std::string proto_name;
@@ -1735,7 +1735,6 @@ FB::variant webpgPluginAPI::gpgDecryptVerify(const std::string& data, const std:
         }
         gpgme_data_seek (plain, 0, SEEK_SET);
         gpgme_data_seek (in, 0, SEEK_SET);
-        edit_status = "Made it thus far...";
         err = gpgme_op_verify (ctx, in, plain, NULL);
     } else {
         err = gpgme_op_decrypt_verify (ctx, in, out);
@@ -1794,12 +1793,17 @@ FB::variant webpgPluginAPI::gpgDecryptVerify(const std::string& data, const std:
                     sig->validity == GPGME_VALIDITY_MARGINAL? "marginal":
                     sig->validity == GPGME_VALIDITY_FULL? "full":
                     sig->validity == GPGME_VALIDITY_ULTIMATE? "ultimate": "[?]";
+            signature["validity_reason"] = gpgme_strerror (sig->validity_reason);
             signature["status"] = gpg_err_code (sig->status) == GPG_ERR_NO_ERROR? "GOOD":
                     gpg_err_code (sig->status) == GPG_ERR_BAD_SIGNATURE? "BAD_SIG":
                     gpg_err_code (sig->status) == GPG_ERR_NO_PUBKEY? "NO_PUBKEY":
                     gpg_err_code (sig->status) == GPG_ERR_NO_DATA? "NO_SIGNATURE":
                     gpg_err_code (sig->status) == GPG_ERR_SIG_EXPIRED? "GOOD_EXPSIG":
                     gpg_err_code (sig->status) == GPG_ERR_KEY_EXPIRED? "GOOD_EXPKEY": "INVALID";
+            signature["pubkey_algo"] = sig->pubkey_algo;
+            signature["pubkey_algo_name"] = (sig->pubkey_algo) ? gpgme_pubkey_algo_name(sig->pubkey_algo) : "[?]";
+            signature["hash_algo"] = sig->hash_algo;
+            signature["hash_algo_name"] = (sig->hash_algo) ? gpgme_hash_algo_name(sig->hash_algo) : "[?]";
             signatures[i_to_str(nsigs)] = signature;
             tnsigs++;
         }
@@ -1927,9 +1931,10 @@ FB::variant webpgPluginAPI::gpgSignText(const FB::VariantList& signers, const st
     gpgme_error_t err;
     gpgme_data_t in, out;
     gpgme_key_t key;
+    gpgme_new_signature_t sig;
     gpgme_sig_mode_t sig_mode;
     gpgme_sign_result_t sign_result;
-    int nsigners;
+    int nsigners, nsigs;
     FB::variant signer;
     FB::VariantMap result;
 
@@ -1995,6 +2000,19 @@ FB::variant webpgPluginAPI::gpgSignText(const FB::VariantList& signers, const st
 
     result["error"] = false;
     result["data"] = out_buf;
+
+    FB::VariantMap signatures_map;
+    for (nsigs=0, sig=sign_result->signatures; sig; sig = sig->next, nsigs++) {
+        FB::VariantMap signature_map;
+        signature_map["pubkey_algo"] = sig->pubkey_algo;
+        signature_map["pubkey_algo_name"] = gpgme_pubkey_algo_name(sig->pubkey_algo);
+        signature_map["hash_algo"] = sig->hash_algo;
+        signature_map["hash_algo_name"] = gpgme_hash_algo_name(sig->hash_algo);
+        signature_map["timestamp"] = sig->timestamp;
+        signature_map["fingerprint"] = sig->fpr;
+        signatures_map[i_to_str(nsigs)] = signature_map;
+    }
+    result["signatures"] = signatures_map;
 
     gpgme_data_release (in);
     gpgme_release (ctx);
@@ -2346,7 +2364,7 @@ std::string webpgPluginAPI::gpgGenKeyWorker(const std::string& key_type, const s
 
     if (!result)
     {
-        FBLOG_DEBUG("get_error_map", "gpgme_op_genkey_result returned NULL");
+//        FBLOG_DEBUG("get_error_map", "gpgme_op_genkey_result returned NULL");
         return "error with result";
     }
 
@@ -2355,7 +2373,7 @@ std::string webpgPluginAPI::gpgGenKeyWorker(const std::string& key_type, const s
     msg += result->primary ? (result->sub ? "primary, sub" : "primary")
         : (result->sub ? "sub" : "none");
     msg += ")";
-    FBLOG_DEBUG("genkey", msg);
+//    FBLOG_DEBUG("genkey", msg);
 
     gpgme_release (ctx);
     const char* status = (char *) "complete";
