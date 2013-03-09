@@ -75,8 +75,6 @@ std::string LoadFileAsString(const std::string& filename)
     return oss.str();
 }
 
-static bool gpgme_invalid = false;
-
 ///////////////////////////////////////////////////////////////////////////////
 /// @fn webpgPluginAPI::webpgPluginAPI(const webpgPluginPtr& plugin, const FB::BrowserHostPtr host)
 ///
@@ -176,6 +174,10 @@ webpgPluginAPI::webpgPluginAPI(const webpgPluginPtr& plugin, const FB::BrowserHo
                     make_property(this,
                         &webpgPluginAPI::get_webpg_status));
 
+    registerProperty("openpgp_detected",
+                     make_property(this,
+                        &webpgPluginAPI::openpgp_detected));
+
     registerProperty("gpgconf_detected",
                      make_property(this,
                         &webpgPluginAPI::gpgconf_detected));
@@ -225,7 +227,6 @@ void webpgPluginAPI::init()
     FB::VariantMap response;
     FB::VariantMap protocol_info, plugin_info;
     gpgme_engine_info_t engine_info;
-    std::string engine_version;
 
     plugin_info["source_url"] = m_host->getDOMWindow()->getLocation();
     plugin_info["path"] = getPlugin()->getPluginPath();
@@ -259,34 +260,32 @@ void webpgPluginAPI::init()
     gpgme_set_locale (NULL, LC_MESSAGES, setlocale (LC_MESSAGES, NULL));
 #endif
 
+    ctx = get_gpgme_ctx();
+
     err = gpgme_engine_check_version (GPGME_PROTOCOL_OpenPGP);
     if (err != GPG_ERR_NO_ERROR)
         error_map = get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
 
     if (error_map.size()) {
-        response["openpgp_valid"] = false;
         response["error"] = true;
         response["error_map"] = error_map;
         webpgPluginAPI::webpg_status_map = error_map;
-        gpgme_invalid = true;
-    }
-
-    ctx = get_gpgme_ctx();
-
-    // Check the GPGCONF variable, if not null, set the GPGCONF
-    //  engine to use that path
-    if (GPGCONF.length() > 0) {
-        err = gpgme_set_engine_info (GPGME_PROTOCOL_GPGCONF,
-            (char *) GPGCONF.c_str(), NULL);
     }
 
     response["error"] = false;
+
     response["gpgconf_detected"] = gpgconf_detected();
+    response["openpgp_detected"] = openpgp_detected();
 
     response["gpgme_version"] = gpgme_version;
+
     engine_info = gpgme_ctx_get_engine_info (ctx);
 
-    if (engine_info) {
+    while (engine_info) {
+        protocol_info["file_name"].reset();
+        protocol_info["version"].reset();
+        protocol_info["home_dir"].reset();
+        protocol_info["req_version"].reset();
         if (engine_info->file_name)
             protocol_info["file_name"] = (char *) engine_info->file_name;
         if (engine_info->version)
@@ -295,50 +294,16 @@ void webpgPluginAPI::init()
             protocol_info["home_dir"] = (char *) engine_info->home_dir;
         if (engine_info->req_version)
             protocol_info["req_version"] = (char *) engine_info->req_version;
-        response[(char *) gpgme_get_protocol_name (engine_info->protocol)] = protocol_info;
-    } else {
-        response["OpenPGP"] = get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
-    }
 
-    engine_version = (engine_info) ? (engine_info->version) ?
-        (char *) engine_info->version : "" : "";
+        std::string proto_name = (engine_info->protocol == GPGME_PROTOCOL_OpenPGP) ? "OpenPGP"
+            : (engine_info->protocol == GPGME_PROTOCOL_CMS) ? "CMS"
+            : (engine_info->protocol == GPGME_PROTOCOL_GPGCONF) ? "GPGCONF"
+            : (engine_info->protocol == GPGME_PROTOCOL_ASSUAN) ? "Assuan"
+            : "UNKNOWN";
 
-    if (engine_version.length() > 0) {
-        response["openpgp_valid"] = true;
-        response["error"] = false;
-        gpgme_invalid = false;
-    } else {
-        return;
-    }
+        response[proto_name] = protocol_info;
 
-    err = gpgme_get_engine_info (&engine_info);
-    std::string proto_name;
-
-    if (!err) {
-        while (engine_info) {
-            protocol_info["file_name"].reset();
-            protocol_info["version"].reset();
-            protocol_info["home_dir"].reset();
-            protocol_info["req_version"].reset();
-            if (engine_info->file_name)
-                protocol_info["file_name"] = (char *) engine_info->file_name;
-            if (engine_info->version)
-                protocol_info["version"] = (char *) engine_info->version;
-            if (engine_info->home_dir)
-                protocol_info["home_dir"] = (char *) engine_info->home_dir;
-            if (engine_info->req_version)
-                protocol_info["req_version"] = (char *) engine_info->req_version;
-
-            proto_name = (engine_info->protocol == GPGME_PROTOCOL_OpenPGP) ? "OpenPGP"
-                : (engine_info->protocol == GPGME_PROTOCOL_CMS) ? "CMS"
-                : (engine_info->protocol == GPGME_PROTOCOL_GPGCONF) ? "GPGCONF"
-                : (engine_info->protocol == GPGME_PROTOCOL_ASSUAN) ? "Assuan"
-                : "UNKNOWN";
-
-            response[proto_name] = protocol_info;
-
-            engine_info = engine_info->next;
-        }
+        engine_info = engine_info->next;
     }
 
     response["GNUPGHOME"] = GNUPGHOME;
@@ -388,9 +353,14 @@ gpgme_ctx_t webpgPluginAPI::get_gpgme_ctx()
 
     err = gpgme_new (&ctx);
     gpgme_engine_info_t engine_info = gpgme_ctx_get_engine_info (ctx);
-    err = gpgme_ctx_set_engine_info (ctx, engine_info->protocol,
-        (GNUPGBIN.length() > 0) ? file_name : engine_info->file_name,
+    err = gpgme_set_engine_info (engine_info->protocol,
+        (GNUPGBIN.length() > 0) ? file_name : NULL,
         (GNUPGHOME.length() > 0) ? home_dir : NULL);
+
+    // Check the GPGCONF variable, if not null, set the GPGCONF
+    //  engine to use that path
+    err = gpgme_set_engine_info (GPGME_PROTOCOL_GPGCONF,
+            (GPGCONF.length() > 0) ? (char *) GPGCONF.c_str() : NULL, NULL);
 
     gpgme_set_textmode (ctx, 1);
     gpgme_set_armor (ctx, 1);
@@ -564,6 +534,7 @@ FB::variant webpgPluginAPI::gpgGetBinary()
 FB::variant webpgPluginAPI::gpgSetGPGConf(const std::string& gpgconf_exec)
 {
     GPGCONF = gpgconf_exec;
+    webpgPluginAPI::init();
     return GPGCONF;
 }
 
@@ -1072,16 +1043,27 @@ FB::variant webpgPluginAPI::getExternalKey(const std::string& name)
     }
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// @fn bool webpgPluginAPI::openpgp_detected()
+///
+/// @brief  Determines if OpenPGP is available as a valid engine.
+///////////////////////////////////////////////////////////////////////////////
+bool webpgPluginAPI::openpgp_detected() {
+    gpgme_error_t err = gpgme_engine_check_version (GPGME_PROTOCOL_OpenPGP);
+    if (err && err != GPG_ERR_NO_ERROR) {
+        return false;
+    }
+    return true;
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////
 /// @fn bool webpgPluginAPI::gpgconf_detected()
 ///
-/// @brief  Determines if the gpgconf util is available to the gpgme_engine.
+/// @brief  Determines gpgconf is available to the engine.
 ///////////////////////////////////////////////////////////////////////////////
 bool webpgPluginAPI::gpgconf_detected() {
-    gpgme_error_t err;
-    std::string cfg_present;
-    err = gpgme_engine_check_version (GPGME_PROTOCOL_GPGCONF);
+    gpgme_error_t err = gpgme_engine_check_version (GPGME_PROTOCOL_GPGCONF);
     if (err && err != GPG_ERR_NO_ERROR) {
         return false;
     }
