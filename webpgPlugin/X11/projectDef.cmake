@@ -18,6 +18,8 @@ SOURCE_GROUP(X11 FILES ${PLATFORM})
 # use this to add preprocessor definitions
 add_definitions(
     -D_FILE_OFFSET_BITS=64
+    # Uncomment to compile for extension use only
+    #-D_EXTENSIONIZE
 )
 
 set (SOURCES
@@ -27,11 +29,21 @@ set (SOURCES
 
 add_x11_plugin(${PROJECT_NAME} SOURCES)
 
-IF(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
-    set(ARCH_DIR "Linux_x86_64-gcc")
+IF(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "amd64")
+    # Currently maps *BSD to FreeBSD; may require more finite definition to make a
+    #   distinction between FreeBSD and openBSD, etc.
+    IF(CMAKE_SYSTEM_NAME MATCHES "BSD")
+        set(ARCH_DIR "FreeBSD_x86_64-gcc")
+    ELSE ()
+        set(ARCH_DIR "Linux_x86_64-gcc")
+    ENDIF(CMAKE_SYSTEM_NAME MATCHES "BSD")
 ELSE ()
-    set(ARCH_DIR "Linux_x86-gcc")
-ENDIF(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+    IF(CMAKE_SYSTEM_NAME MATCHES "BSD")
+        set(ARCH_DIR "FreeBSD_x86-gcc")
+    ELSE ()
+        set(ARCH_DIR "Linux_x86-gcc")
+    ENDIF(CMAKE_SYSTEM_NAME MATCHES "BSD")
+ENDIF(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "amd64")
 
 add_library(gpgme STATIC IMPORTED)
 set_property(TARGET gpgme PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/libs/libgpgme/${ARCH_DIR}/libgpgme.a)
