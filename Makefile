@@ -32,9 +32,9 @@ else
 	./firebreath/prepmake.sh webpgPlugin build
 endif
 ifeq ($(OS), WINDOWS)
-	cmake --build build --config MinSizeRel
+	cmake --build build --config MinSizeRel -- --no-print-directory
 else
-	cmake --build build --target webpgPlugin --config MinSizeRel
+	cmake --build build --target webpgPlugin --config MinSizeRel -- --no-print-directory
 endif
 .PHONY: build
 
