@@ -341,25 +341,15 @@ gpgme_ctx_t webpgPluginAPI::get_gpgme_ctx()
     gpgme_set_locale (NULL, LC_MESSAGES, setlocale (LC_MESSAGES, NULL));
 #endif
 
-    // Check the GNUPGBIN variable, if not null, use that
-    if (GNUPGBIN.length() > 0) {
-        file_name = (char *) GNUPGBIN.c_str();
-    }
-
-    // Check the GNUPGHOME variable, if not null, use that
-    if (GNUPGHOME.length() > 0) {
-        home_dir = (char *) GNUPGHOME.c_str();
-    }
-
     err = gpgme_new (&ctx);
     gpgme_engine_info_t engine_info = gpgme_ctx_get_engine_info (ctx);
-    err = gpgme_set_engine_info (engine_info->protocol,
-        (GNUPGBIN.length() > 0) ? file_name : NULL,
-        (GNUPGHOME.length() > 0) ? home_dir : NULL);
+    err = gpgme_ctx_set_engine_info (ctx, engine_info->protocol,
+        (GNUPGBIN.length() > 0) ? (char *) GNUPGBIN.c_str() : NULL,
+        (GNUPGHOME.length() > 0) ? (char *) GNUPGHOME.c_str() : NULL);
 
     // Check the GPGCONF variable, if not null, set the GPGCONF
     //  engine to use that path
-    err = gpgme_set_engine_info (GPGME_PROTOCOL_GPGCONF,
+    err = gpgme_ctx_set_engine_info (ctx, GPGME_PROTOCOL_GPGCONF,
             (GPGCONF.length() > 0) ? (char *) GPGCONF.c_str() : NULL, NULL);
 
     gpgme_set_textmode (ctx, 1);
@@ -1061,6 +1051,9 @@ FB::variant webpgPluginAPI::getExternalKey(const std::string& name)
 /// @brief  Determines if OpenPGP is available as a valid engine.
 ///////////////////////////////////////////////////////////////////////////////
 bool webpgPluginAPI::openpgp_detected() {
+    gpgme_set_engine_info (GPGME_PROTOCOL_OpenPGP,
+        (GNUPGBIN.length() > 0) ? (char *) GNUPGBIN.c_str() : NULL,
+        (GNUPGHOME.length() > 0) ? (char *) GNUPGHOME.c_str() : NULL);
     gpgme_error_t err = gpgme_engine_check_version (GPGME_PROTOCOL_OpenPGP);
     if (err && err != GPG_ERR_NO_ERROR) {
         return false;
@@ -1075,6 +1068,8 @@ bool webpgPluginAPI::openpgp_detected() {
 /// @brief  Determines gpgconf is available to the engine.
 ///////////////////////////////////////////////////////////////////////////////
 bool webpgPluginAPI::gpgconf_detected() {
+    gpgme_set_engine_info (GPGME_PROTOCOL_GPGCONF,
+            (GPGCONF.length() > 0) ? (char *) GPGCONF.c_str() : NULL, NULL);
     gpgme_error_t err = gpgme_engine_check_version (GPGME_PROTOCOL_GPGCONF);
     if (err && err != GPG_ERR_NO_ERROR) {
         return false;
