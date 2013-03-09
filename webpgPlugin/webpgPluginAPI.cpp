@@ -569,25 +569,37 @@ FB::variant webpgPluginAPI::getTemporaryPath()
 /// @returns FB::VariantMap webpg_status_map
 /*! @verbatim
 webpg_status_map {
-    "GNUPGHOME":"",
-    "OpenPGP":{
-        "file_name":"/usr/bin/gpg",
-        "req_version":"1.4.0",
-        "version":"1.4.11"
+    "Assuan": {
+        "file_name": "/tmp/keyring-3WPw3L/gpg",
+        "home_dir": "!GPG_AGENT",
+        "req_version": "1.0",
+        "version": "1.0"
     },
-    "edit_status":"",
-    "error":false,
-    "gpg_agent_info":"/tmp/keyring-5FZWyz/gpg:0:1",
-    "gpgconf_detected":true,
-    "gpgme_version":"1.3.2",
-    "plugin":{
-        "params":{
-            "id":"webpgPlugin",
-            "type":"application/x-webpg"
+    "GNUPGHOME": "",
+    "GPGCONF": {
+        "file_name": "/usr/bin/gpgconf",
+        "req_version": "2.0.4",
+        "version": "2.0.17"
+    },
+    "OpenPGP": {
+        "file_name": "/usr/bin/gpg",
+        "req_version": "1.4.0",
+        "version": "1.4.11"
+    },
+    "edit_status": "",
+    "error": false,
+    "gpg_agent_info": "/tmp/keyring-3WPw3L/gpg:0:1",
+    "gpgconf_detected": true,
+    "gpgme_version": "1.3.2",
+    "openpgp_detected": true,
+    "plugin": {
+        "params": {
+            "id": "webpgPlugin",
+            "type": "application/x-webpg"
         },
-        "path":"plugins/Linux_x86_64-gcc/npwebpgPlugin-v0.6.1.so",
-        "source_url":"_generated_background_page.html",
-        "version":"0.6.1"
+        "path": "/devel/webpg-chrome/extension/plugins/Linux_x86_64-gcc/npwebpgPlugin-v0.6.3.so",
+        "source_url": "chrome-extension://nmipeminjagdpkgjedjkfmihpmfldhdc/_generated_background_page.html",
+        "version": "0.6.4"
     }
 }
 @endverbatim
