@@ -44,4 +44,4 @@ ifeq ($(OS), WINDOWS)
 else
 	rm -rf ./build
 endif
-.PHONE: clean
+.PHONY: clean
