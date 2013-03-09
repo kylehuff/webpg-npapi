@@ -29,6 +29,9 @@ set (SOURCES
 
 add_x11_plugin(${PROJECT_NAME} SOURCES)
 
+# Uncomment for building 32bit on 64bit (must have required 32bit system libs
+#set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
+
 IF(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "amd64")
     # Currently maps *BSD to FreeBSD; may require more finite definition to make a
     #   distinction between FreeBSD and openBSD, etc.
