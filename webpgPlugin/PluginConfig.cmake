@@ -41,7 +41,7 @@ set(EXTENSIONIZE TRUE)
 #   FALSE: Build matching architecture
 set(FORCE32 FALSE)
 
-IF(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86" OR CMAKE_SYSTEM_NAME MATCHES "Windows" OR FORCE32)
+IF(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "i686" OR CMAKE_SYSTEM_NAME MATCHES "Windows" OR FORCE32)
     # Currently maps *BSD to FreeBSD; may require more finite definition to make a
     #   distinction between FreeBSD and openBSD, etc.
     IF(CMAKE_SYSTEM_NAME MATCHES "BSD")
