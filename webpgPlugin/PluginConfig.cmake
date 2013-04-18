@@ -33,7 +33,7 @@ set(ACTIVEX_PROGID "CURETHEITCH.webpg-npapi")
 set(MOZILLA_PLUGINID "curetheitch.com/webpg-npapi")
 
 # Uncomment to build 32bit on 64bit
-set(FORCE32 TRUE)
+#set(FORCE32 TRUE)
 
 IF(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86" OR CMAKE_SYSTEM_NAME MATCHES "Windows" OR FORCE32)
     # Currently maps *BSD to FreeBSD; may require more finite definition to make a
