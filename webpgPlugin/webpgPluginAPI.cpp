@@ -1738,9 +1738,11 @@ FB::variant webpgPluginAPI::gpgDecryptVerify(const std::string& data, const std:
         // Restore GPG_AGENT_INFO to its original value
 #ifndef HAVE_W32_SYSTEM
 #ifndef FB_MACOSX
-        envvar = "GPG_AGENT_INFO=";
-        envvar += agent_info;
-        putenv(strdup(envvar.c_str()));
+        if (agent_info != NULL) {
+            envvar = "GPG_AGENT_INFO=";
+            envvar += agent_info;
+            putenv(strdup(envvar.c_str()));
+        }
 #endif
 #endif
     }
