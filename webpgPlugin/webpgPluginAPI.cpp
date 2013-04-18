@@ -332,8 +332,6 @@ gpgme_ctx_t webpgPluginAPI::get_gpgme_ctx()
 {
     gpgme_ctx_t ctx;
     gpgme_error_t err;
-    char *home_dir;
-    char *file_name;
 
     setlocale (LC_ALL, "");
     gpgme_set_locale (NULL, LC_CTYPE, setlocale (LC_CTYPE, NULL));
