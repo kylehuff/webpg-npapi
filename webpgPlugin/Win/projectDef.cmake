@@ -17,9 +17,9 @@ file (GLOB PLATFORM RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
 add_definitions(
     /D "_ATL_STATIC_REGISTRY"
     /D "HAVE_W32_SYSTEM"
-    /D _FILE_OFFSET_BITS=64
+    /D "_FILE_OFFSET_BITS=64"
     # See note at http://webpg.org/docs/webpg-npapi/classwebpg_plugin_a_p_i_af99142391c5049c827cbe035812954f4.html
-    /D _EXTENSIONIZE
+    /D "_EXTENSIONIZE"
 )
 
 SOURCE_GROUP(Win FILES ${PLATFORM})
