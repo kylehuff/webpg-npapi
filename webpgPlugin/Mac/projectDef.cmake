@@ -16,9 +16,11 @@ file (GLOB PLATFORM RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
 # use this to add preprocessor definitions
 add_definitions(
     -D _FILE_OFFSET_BITS=64
-    # See note at http://webpg.org/docs/webpg-npapi/classwebpg_plugin_a_p_i_af99142391c5049c827cbe035812954f4.html
-    -D _EXTENSIONIZE
 )
+
+IF(EXTENSIONIZE)
+    add_definitions(-D_EXTENSIONIZE)
+ENDIF(EXTENSIONIZE)
 
 SOURCE_GROUP(Mac FILES ${PLATFORM})
 

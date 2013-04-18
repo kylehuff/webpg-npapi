@@ -18,9 +18,11 @@ SOURCE_GROUP(X11 FILES ${PLATFORM})
 # use this to add preprocessor definitions
 add_definitions(
     -D_FILE_OFFSET_BITS=64
-    # See note at http://webpg.org/docs/webpg-npapi/classwebpg_plugin_a_p_i_af99142391c5049c827cbe035812954f4.html
-    -D_EXTENSIONIZE
 )
+
+IF(EXTENSIONIZE)
+    add_definitions(-D_EXTENSIONIZE)
+ENDIF(EXTENSIONIZE)
 
 set (SOURCES
     ${SOURCES}

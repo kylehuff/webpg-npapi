@@ -32,8 +32,14 @@ set(IFBComEventSource_GUID 7e55f947-88bb-5929-bd9d-7395de30fd0f)
 set(ACTIVEX_PROGID "CURETHEITCH.webpg-npapi")
 set(MOZILLA_PLUGINID "curetheitch.com/webpg-npapi")
 
-# Uncomment to build 32bit on 64bit
-#set(FORCE32 TRUE)
+# Sets the plugin in "extension only mode"
+#   See note at http://webpg.org/docs/webpg-npapi/classwebpg_plugin_a_p_i_af99142391c5049c827cbe035812954f4.html
+set(EXTENSIONIZE TRUE)
+
+# Force building 32bit on 64bit
+#   TRUE: Build 32bit on 64bit
+#   FALSE: Build matching architecture
+set(FORCE32 FALSE)
 
 IF(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86" OR CMAKE_SYSTEM_NAME MATCHES "Windows" OR FORCE32)
     # Currently maps *BSD to FreeBSD; may require more finite definition to make a
@@ -61,12 +67,19 @@ ENDIF(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86" OR CMAKE_SYSTEM_NAME MATCHES "Window
 
 message("Target architecture: ${ARCH_DIR}")
 
+IF(EXTENSIONIZE)
+    message("Setting _EXTENSIONIZE")
+    set(PLUGIN_EXTENTIONIZE_NAME "-ext")
+ELSE ()
+    set(PLUGIN_EXTENTIONIZE_NAME "")
+ENDIF(EXTENSIONIZE)
+
 # strings
 set(FBSTRING_CompanyName "CURE|THE|ITCH")
 set(FBSTRING_FileDescription "A browser agnostic NPAPI interface to GnuPG")
 set(FBSTRING_PLUGIN_VERSION "0.6.5")
 set(FBSTRING_LegalCopyright "Copyright 2011-2013 CURE|THE|ITCH")
-set(FBSTRING_PluginFileName "np${PLUGIN_NAME}-${ARCH_DIR}-v${FBSTRING_PLUGIN_VERSION}")
+set(FBSTRING_PluginFileName "np${PLUGIN_NAME}${PLUGIN_EXTENTIONIZE_NAME}-v${FBSTRING_PLUGIN_VERSION}-${ARCH_DIR}")
 set(FBSTRING_ProductName "WebPG")
 set(FBSTRING_FileExtents "")
 set(FBSTRING_PluginName "WebPG")
