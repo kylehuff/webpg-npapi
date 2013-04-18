@@ -15,6 +15,9 @@ file (GLOB PLATFORM RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
 
 # use this to add preprocessor definitions
 add_definitions(
+    -D _FILE_OFFSET_BITS=64
+    # See note at http://webpg.org/docs/webpg-npapi/classwebpg_plugin_a_p_i_af99142391c5049c827cbe035812954f4.html
+    -D _EXTENSIONIZE
 )
 
 SOURCE_GROUP(Mac FILES ${PLATFORM})
@@ -30,12 +33,16 @@ set(LOCALIZED "Mac/bundle_template/Localized.r")
 
 add_mac_plugin(${PROJECT_NAME} ${PLIST} ${STRINGS} ${LOCALIZED} SOURCES)
 
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    OUTPUT_NAME ${FBSTRING_PluginFileName}
+)
+
 add_library(gpgme STATIC IMPORTED)
-set_property(TARGET gpgme PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/libs/libgpgme/Darwin_x86_64-gcc/libgpgme.a)
+set_property(TARGET gpgme PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/libs/libgpgme/${ARCH_DIR}/libgpgme.a)
 add_library(gpg-error STATIC IMPORTED)
-set_property(TARGET gpg-error PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/libs/libgpg-error/Darwin_x86_64-gcc/libgpg-error.a)
+set_property(TARGET gpg-error PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/libs/libgpg-error/${ARCH_DIR}/libgpg-error.a)
 add_library(assuan STATIC IMPORTED)
-set_property(TARGET assuan PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/libs/libassuan/Darwin_x86_64-gcc/libassuan.a)
+set_property(TARGET assuan PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/libs/libassuan/${ARCH_DIR}/libassuan.a)
 
 # add library dependencies here; leave ${PLUGIN_INTERNAL_DEPS} there unless you know what you're doing!
 target_link_libraries(${PROJECT_NAME}
@@ -44,14 +51,3 @@ target_link_libraries(${PROJECT_NAME}
     gpg-error
     assuan
     )
-
-set(PNAME "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/np${PLUGIN_NAME}-v${FBSTRING_PLUGIN_VERSION}.plugin")
-
-# Rename plugin to np${PLUGIN_NAME}-v${FBSTRING_PLUGIN_VERSION}.plugin
-ADD_CUSTOM_COMMAND(
-    TARGET ${PROJECT_NAME}
-    POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E remove_directory ${PNAME}
-    COMMAND ${CMAKE_COMMAND} -E rename ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${PROJECT_NAME}.plugin ${PNAME}
-)
-

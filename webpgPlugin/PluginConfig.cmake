@@ -5,7 +5,7 @@
 #
 #\**********************************************************/
 
-set(PLUGIN_NAME "webpgPlugin")
+set(PLUGIN_NAME "webpg")
 set(PLUGIN_PREFIX "WEBPG")
 set(COMPANY_NAME "CURETHEITCH")
 set(CMAKE_BUILD_TYPE MinSizeRel)
@@ -29,24 +29,52 @@ set(FBComJavascriptObject_GUID 43b488b4-8132-58e9-87ee-79f96eaa01f2)
 set(IFBComEventSource_GUID 7e55f947-88bb-5929-bd9d-7395de30fd0f)
 
 # these are the pieces that are relevant to using it from Javascript
-set(ACTIVEX_PROGID "CURETHEITCH.webpgPlugin")
-set(MOZILLA_PLUGINID "curetheitch.com/webpgPlugin")
+set(ACTIVEX_PROGID "CURETHEITCH.webpg-npapi")
+set(MOZILLA_PLUGINID "curetheitch.com/webpg-npapi")
+
+# Uncomment to build 32bit on 64bit
+set(FORCE32 TRUE)
+
+IF(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86" OR CMAKE_SYSTEM_NAME MATCHES "Windows" OR FORCE32)
+    # Currently maps *BSD to FreeBSD; may require more finite definition to make a
+    #   distinction between FreeBSD and openBSD, etc.
+    IF(CMAKE_SYSTEM_NAME MATCHES "BSD")
+        set(ARCH_DIR "FreeBSD_x86-gcc")
+    ELSEIF (CMAKE_SYSTEM_NAME MATCHES "Linux")
+        set(ARCH_DIR "Linux_x86-gcc")
+    ELSEIF (CMAKE_SYSTEM_NAME MATCHES "Windows")
+        set(ARCH_DIR "WINNT_x86-msvc")
+    ELSEIF (CMAKE_SYSTEM_NAME MATCHES "Darwin")
+        set(ARCH_DIR "Darwin_x86_64")
+    ENDIF(CMAKE_SYSTEM_NAME MATCHES "BSD")
+ELSE ()
+    IF(CMAKE_SYSTEM_NAME MATCHES "BSD")
+        set(ARCH_DIR "FreeBSD_x86_64-gcc")
+    ELSEIF (CMAKE_SYSTEM_NAME MATCHES "Linux")
+        set(ARCH_DIR "Linux_x86_64-gcc")
+    ELSEIF (CMAKE_SYSTEM_NAME MATCHES "Windows")
+        set(ARCH_DIR "WINNT_x86-msvc")
+    ELSEIF (CMAKE_SYSTEM_NAME MATCHES "Darwin")
+        set(ARCH_DIR "Darwin_x86_64")
+    ENDIF(CMAKE_SYSTEM_NAME MATCHES "BSD")
+ENDIF(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86" OR CMAKE_SYSTEM_NAME MATCHES "Windows" OR FORCE32)
+
+message("Target architecture: ${ARCH_DIR}")
 
 # strings
 set(FBSTRING_CompanyName "CURE|THE|ITCH")
 set(FBSTRING_FileDescription "A browser agnostic NPAPI interface to GnuPG")
-set(FBSTRING_PLUGIN_VERSION "0.6.4")
-set(FBSTRING_LegalCopyright "Copyright 2012 CURE|THE|ITCH")
-set(FBSTRING_PluginFileName "np${PLUGIN_NAME}-v${FBSTRING_PLUGIN_VERSION}.dll")
+set(FBSTRING_PLUGIN_VERSION "0.6.5")
+set(FBSTRING_LegalCopyright "Copyright 2011-2013 CURE|THE|ITCH")
+set(FBSTRING_PluginFileName "np${PLUGIN_NAME}-${ARCH_DIR}-v${FBSTRING_PLUGIN_VERSION}")
 set(FBSTRING_ProductName "WebPG")
-set(FBSTRING_FileExtents "asc")
+set(FBSTRING_FileExtents "")
 set(FBSTRING_PluginName "WebPG")
 set(FBSTRING_PluginDescription "A browser agnostic NPAPI interface to GnuPG")
 set(FBSTRING_MIMEType "application/x-webpg")
 
 # Uncomment this next line if you're not planning on your plugin doing
 # any drawing:
-
 set (FB_GUI_DISABLED 1)
 
 # Mac plugin settings. If your plugin does not draw, set these all to 0

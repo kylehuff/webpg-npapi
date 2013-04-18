@@ -18,8 +18,8 @@ SOURCE_GROUP(X11 FILES ${PLATFORM})
 # use this to add preprocessor definitions
 add_definitions(
     -D_FILE_OFFSET_BITS=64
-    # Uncomment to compile for extension use only
-    #-D_EXTENSIONIZE
+    # See note at http://webpg.org/docs/webpg-npapi/classwebpg_plugin_a_p_i_af99142391c5049c827cbe035812954f4.html
+    -D_EXTENSIONIZE
 )
 
 set (SOURCES
@@ -29,24 +29,13 @@ set (SOURCES
 
 add_x11_plugin(${PROJECT_NAME} SOURCES)
 
-# Uncomment for building 32bit on 64bit (must have required 32bit system libs
-#set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
+IF(FORCE32)
+    set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
+ENDIF(FORCE32)
 
-IF(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "amd64")
-    # Currently maps *BSD to FreeBSD; may require more finite definition to make a
-    #   distinction between FreeBSD and openBSD, etc.
-    IF(CMAKE_SYSTEM_NAME MATCHES "BSD")
-        set(ARCH_DIR "FreeBSD_x86_64-gcc")
-    ELSE ()
-        set(ARCH_DIR "Linux_x86_64-gcc")
-    ENDIF(CMAKE_SYSTEM_NAME MATCHES "BSD")
-ELSE ()
-    IF(CMAKE_SYSTEM_NAME MATCHES "BSD")
-        set(ARCH_DIR "FreeBSD_x86-gcc")
-    ELSE ()
-        set(ARCH_DIR "Linux_x86-gcc")
-    ENDIF(CMAKE_SYSTEM_NAME MATCHES "BSD")
-ENDIF(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "amd64")
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    OUTPUT_NAME ${FBSTRING_PluginFileName}
+)
 
 add_library(gpgme STATIC IMPORTED)
 set_property(TARGET gpgme PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/libs/libgpgme/${ARCH_DIR}/libgpgme.a)
@@ -62,11 +51,3 @@ target_link_libraries(${PROJECT_NAME}
     assuan
     gpg-error
     )
-
-set(PNAME "${FB_BUILD_DIR}/bin/${PROJECT_NAME}/np${PLUGIN_NAME}-v${FBSTRING_PLUGIN_VERSION}.so")
-
-ADD_CUSTOM_COMMAND(
-    TARGET ${PROJECT_NAME}
-    POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E rename ${FB_BUILD_DIR}/bin/${PROJECT_NAME}/np${PROJECT_NAME}.so ${PNAME}
-)

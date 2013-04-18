@@ -18,6 +18,8 @@ add_definitions(
     /D "_ATL_STATIC_REGISTRY"
     /D "HAVE_W32_SYSTEM"
     /D _FILE_OFFSET_BITS=64
+    # See note at http://webpg.org/docs/webpg-npapi/classwebpg_plugin_a_p_i_af99142391c5049c827cbe035812954f4.html
+    /D _EXTENSIONIZE
 )
 
 SOURCE_GROUP(Win FILES ${PLATFORM})
@@ -28,6 +30,10 @@ set (SOURCES
     )
 
 add_windows_plugin(${PROJECT_NAME} SOURCES)
+
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    OUTPUT_NAME ${FBSTRING_PluginFileName}
+)
 
 # This is an example of how to add a build step to sign the plugin DLL before
 # the WiX installer builds.  The first filename (certificate.pfx) should be
@@ -55,20 +61,20 @@ target_link_libraries(${PROJECT_NAME}
     libgpgme
     )
 
-set(WIX_HEAT_FLAGS
-    -gg                 # Generate GUIDs
-    -srd                # Suppress Root Dir
-    -cg PluginDLLGroup  # Set the Component group name
-    -dr INSTALLDIR      # Set the directory ID to put the files in
-    )
+#set(WIX_HEAT_FLAGS
+#    -gg                 # Generate GUIDs
+#    -srd                # Suppress Root Dir
+#    -cg PluginDLLGroup  # Set the Component group name
+#    -dr INSTALLDIR      # Set the directory ID to put the files in
+#    )
 
-add_wix_installer( ${PLUGIN_NAME}
-    ${CMAKE_CURRENT_SOURCE_DIR}/Win/WiX/webpgPluginInstaller.wxs
-    PluginDLLGroup
-    ${FB_BIN_DIR}/${PLUGIN_NAME}/${CMAKE_CFG_INTDIR}/
-    ${FB_BIN_DIR}/${PLUGIN_NAME}/${CMAKE_CFG_INTDIR}/${FBSTRING_PluginFileName}.dll
-    ${PROJECT_NAME}
-    )
+#add_wix_installer( ${PLUGIN_NAME}
+#    ${CMAKE_CURRENT_SOURCE_DIR}/Win/WiX/webpgPluginInstaller.wxs
+#    PluginDLLGroup
+#    ${FB_BIN_DIR}/${PLUGIN_NAME}/${CMAKE_CFG_INTDIR}/
+#    ${FB_BIN_DIR}/${PLUGIN_NAME}/${CMAKE_CFG_INTDIR}/${FBSTRING_PluginFileName}.dll
+#    ${PROJECT_NAME}
+#    )
 
 # This is an example of how to add a build step to sign the WiX installer
 # -- uncomment lines below this to enable signing --

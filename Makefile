@@ -34,7 +34,7 @@ endif
 ifeq ($(OS), WINDOWS)
 	cmake --build build --config MinSizeRel -- --no-print-directory
 else
-	cmake --build build --target webpgPlugin --config MinSizeRel -- --no-print-directory
+	cmake --build build --target webpg --config MinSizeRel -- --no-print-directory
 endif
 .PHONY: build
 
