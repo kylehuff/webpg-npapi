@@ -33,6 +33,8 @@ else
 endif
 ifeq ($(OS), WINDOWS)
 	cmake --build build --config MinSizeRel
+else ifeq ($(OS), DARWIN)
+	cmake --build build --target webpg --config MinSizeRel
 else
 	cmake --build build --target webpg --config MinSizeRel -- --no-print-directory
 endif
