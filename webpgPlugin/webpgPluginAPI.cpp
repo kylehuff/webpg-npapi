@@ -1451,7 +1451,7 @@ response {
     and sign [optional; default: 0:NULL:false]
     the return value is a string buffer of the result */
 FB::variant webpgPluginAPI::gpgEncrypt(const std::string& data, 
-        const FB::VariantList& enc_to_keyids, bool sign)
+        const FB::VariantList& enc_to_keyids, const bool& sign, const FB::VariantList& signers)
 {
     /* declare variables */
     gpgme_ctx_t ctx = get_gpgme_ctx();
@@ -1470,6 +1470,37 @@ FB::variant webpgPluginAPI::gpgEncrypt(const std::string& data,
     gpgme_encrypt_result_t enc_result;
     FB::VariantMap response;
     bool unusable_key = false;
+
+    if (signers.size() > 0) {
+        int nsigners;
+        FB::variant signer;
+        
+        gpgme_key_t signing_key;
+        for (nsigners=0; nsigners < signers.size(); nsigners++) {
+            signer = signers[nsigners];
+            err = gpgme_op_keylist_start (ctx, signer.convert_cast<std::string>().c_str(), 0);
+            if (err != GPG_ERR_NO_ERROR)
+                return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+            err = gpgme_op_keylist_next (ctx, &signing_key);
+            if (err != GPG_ERR_NO_ERROR)
+                return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+            err = gpgme_op_keylist_end (ctx);
+            if (err != GPG_ERR_NO_ERROR)
+                return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+            err = gpgme_signers_add (ctx, signing_key);
+            if (err != GPG_ERR_NO_ERROR)
+                return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+            gpgme_key_unref (signing_key);
+
+        }
+
+        if (!nsigners > 0)
+            return get_error_map(__func__, -1, "No signing keys found", __LINE__, __FILE__);
+    }
 
     err = gpgme_data_new_from_mem (&in, data.c_str(), data.length(), 0);
     if (err != GPG_ERR_NO_ERROR)
@@ -1625,10 +1656,10 @@ FB::variant webpgPluginAPI::gpgEncrypt(const std::string& data,
     default: 0:NULL:false].
     the return value is a string buffer of the result */
 FB::variant webpgPluginAPI::gpgSymmetricEncrypt(const std::string& data,
-        bool sign)
+        const bool& sign, const FB::VariantList& signers)
 {
     FB::VariantList empty_keys;
-    return webpgPluginAPI::gpgEncrypt(data, empty_keys, sign);
+    return webpgPluginAPI::gpgEncrypt(data, empty_keys, sign, signers);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

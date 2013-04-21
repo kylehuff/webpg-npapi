@@ -298,7 +298,7 @@ public:
     /// @param  sign    The data should be also be signed.
     ///////////////////////////////////////////////////////////////////////////////
     FB::variant gpgEncrypt(const std::string& data,
-        const FB::VariantList& enc_to_keyids, bool sign=false);
+        const FB::VariantList& enc_to_keyids, const bool& sign, const FB::VariantList& signers);
 
     ///////////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgSymmetricEncrypt(const std::string& data, bool sign)
@@ -312,7 +312,7 @@ public:
     ///                 see https://bugs.g10code.com/gnupg/issue1440
     ///////////////////////////////////////////////////////////////////////////////
     FB::variant gpgSymmetricEncrypt(const std::string& data,  
-        bool sign=false);
+        const bool& sign, const FB::VariantList& signers);
 
     ///////////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgDecryptVerify(const std::string& data, const std::string& plaintext, int use_agent)
