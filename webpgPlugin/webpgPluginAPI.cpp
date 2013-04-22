@@ -1451,9 +1451,12 @@ response {
     and sign [optional; default: 0:NULL:false]
     the return value is a string buffer of the result */
 FB::variant webpgPluginAPI::gpgEncrypt(const std::string& data, 
-        const FB::VariantList& enc_to_keyids, const bool& sign, const FB::VariantList& signers)
+        const FB::VariantList& enc_to_keyids, const boost::optional<bool>& sign, const boost::optional<FB::VariantList>& opt_signers)
 {
     /* declare variables */
+    FB::VariantList signers;
+    if (opt_signers)
+        signers = *opt_signers;
     gpgme_ctx_t ctx = get_gpgme_ctx();
     gpgme_error_t err;
     gpgme_data_t in, out;
@@ -1471,7 +1474,7 @@ FB::variant webpgPluginAPI::gpgEncrypt(const std::string& data,
     FB::VariantMap response;
     bool unusable_key = false;
 
-    if (signers.size() > 0) {
+    if (sign && sign == true && signers.size() > 0) {
         int nsigners;
         FB::variant signer;
         
@@ -1558,7 +1561,7 @@ FB::variant webpgPluginAPI::gpgEncrypt(const std::string& data,
 
     setTempGPGOption("force-mdc", "");
 
-    if (sign) {
+    if (sign && sign == true) {
         if (enc_to_keyids.size() < 1) {
             // NOTE: This doesn't actually work due to an issue with gpgme-1.3.2.
             //  see: https://bugs.g10code.com/gnupg/issue1440 for details
@@ -1656,10 +1659,10 @@ FB::variant webpgPluginAPI::gpgEncrypt(const std::string& data,
     default: 0:NULL:false].
     the return value is a string buffer of the result */
 FB::variant webpgPluginAPI::gpgSymmetricEncrypt(const std::string& data,
-        const bool& sign, const FB::VariantList& signers)
+        const boost::optional<bool>& sign, const boost::optional<FB::VariantList>& opt_signers)
 {
     FB::VariantList empty_keys;
-    return webpgPluginAPI::gpgEncrypt(data, empty_keys, sign, signers);
+    return webpgPluginAPI::gpgEncrypt(data, empty_keys, sign, opt_signers);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1944,9 +1947,12 @@ response {
         1: GPGME_SIG_MODE_DETACH
         2: GPGME_SIG_MODE_CLEAR
 */
-FB::variant webpgPluginAPI::gpgSignText(const FB::VariantList& signers, const std::string& plain_text,
-    int sign_mode)
+FB::variant webpgPluginAPI::gpgSignText(const std::string& plain_text,
+    const FB::VariantList& signers, const boost::optional<int>& opt_sign_mode)
 {
+    int sign_mode;
+    if (opt_sign_mode)
+        sign_mode = *opt_sign_mode;
     gpgme_ctx_t ctx = get_gpgme_ctx();
     gpgme_error_t err;
     gpgme_data_t in, out;
@@ -1958,12 +1964,14 @@ FB::variant webpgPluginAPI::gpgSignText(const FB::VariantList& signers, const st
     FB::variant signer;
     FB::VariantMap result;
 
-    if (sign_mode == 0)
+    if (sign_mode == 0) {
         sig_mode = GPGME_SIG_MODE_NORMAL;
-    else if (sign_mode == 1)
+        gpgme_set_armor (ctx, 0);
+    } else if (sign_mode == 1) {
         sig_mode = GPGME_SIG_MODE_DETACH;
-    else if (sign_mode == 2)
+    } else {
         sig_mode = GPGME_SIG_MODE_CLEAR;
+    }
 
     for (nsigners=0; nsigners < signers.size(); nsigners++) {
         signer = signers[nsigners];

@@ -298,7 +298,7 @@ public:
     /// @param  sign    The data should be also be signed.
     ///////////////////////////////////////////////////////////////////////////////
     FB::variant gpgEncrypt(const std::string& data,
-        const FB::VariantList& enc_to_keyids, const bool& sign, const FB::VariantList& signers);
+        const FB::VariantList& enc_to_keyids, const boost::optional<bool>& sign, const boost::optional<FB::VariantList>& opt_signers);
 
     ///////////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgSymmetricEncrypt(const std::string& data, bool sign)
@@ -312,7 +312,7 @@ public:
     ///                 see https://bugs.g10code.com/gnupg/issue1440
     ///////////////////////////////////////////////////////////////////////////////
     FB::variant gpgSymmetricEncrypt(const std::string& data,  
-        const bool& sign, const FB::VariantList& signers);
+        const boost::optional<bool>& sign, const boost::optional<FB::VariantList>& opt_signers);
 
     ///////////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgDecryptVerify(const std::string& data, const std::string& plaintext, int use_agent)
@@ -347,8 +347,8 @@ public:
     /// @brief  Signs the text specified in plain_text with the key ids specified
     ///         in signers, with the signature mode specified in sign_mode.
     ///////////////////////////////////////////////////////////////////////////////
-    FB::variant gpgSignText(const FB::VariantList& signers,
-        const std::string& plain_text, int sign_mode);
+    FB::variant gpgSignText(const std::string& plain_text,
+        const FB::VariantList& signers, const boost::optional<int>& opt_sign_mode);
 
     ///////////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgSignUID(const std::string& keyid, long sign_uid, const std::string& with_keyid, long local_only, long trust_sign, long trust_level)
