@@ -63,6 +63,10 @@ Copyright 2011 Kyle L. Huff, CURETHEITCH development team
 #include "JSAPIAuto.h"
 #include "BrowserHost.h"
 #include <boost/optional.hpp>
+#include <boost/regex.hpp>
+#include <boost/archive/iterators/binary_from_base64.hpp>
+#include <boost/archive/iterators/transform_width.hpp>
+#include <boost/archive/iterators/remove_whitespace.hpp>
 #include "webpgPlugin.h"
 
 #ifdef HAVE_W32_SYSTEM
@@ -365,7 +369,9 @@ public:
     ///////////////////////////////////////////////////////////////////////////////
     FB::variant gpgSignUID(const std::string& keyid, long uid,
         const std::string& with_keyid, long local_only=NULL,
-        long trust_sign=NULL, long trust_level=NULL);
+        long trust_sign=NULL, long trust_level=NULL,
+        const std::string& notation_name="",
+        const std::string& notation_value="");
 
     ///////////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgDeleteUIDSign(const std::string& keyid, long uid, long signature)
@@ -680,6 +686,11 @@ public:
     int verifyDomainKey(const std::string& domain, 
         const std::string& domain_key_fpr, long uid_idx,
         const std::string& required_sig_keyid);
+
+    void gpgShowPhoto(const std::string& keyid);
+
+    FB::variant gpgAddPhoto(const std::string& keyid, const std::string& photo_name,
+        const std::string& photo_data);
 
     ///////////////////////////////////////////////////////////////////////////////
     /// @fn std::string webpgPluginAPI::get_version()

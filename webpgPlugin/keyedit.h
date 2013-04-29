@@ -83,6 +83,9 @@ std::string reason_index;
 // Used to store the revocation description
 std::string description;
 
+// Used to specify the path to an image
+std::string photo_path;
+
 // Used to keep track of the current edit iteration
 static int step = 0;
 
@@ -960,3 +963,147 @@ edit_fnc_change_passphrase (void *opaque, gpgme_status_code_t status, const char
     }
     return 0;
 }
+
+
+gpgme_error_t
+edit_fnc_show_photo (void *opaque, gpgme_status_code_t status, const char *args, int fd)
+{
+  /* this sets a given UID as the primary for the key
+        the string current_uid must be populated before calling this method */
+
+    char *response = NULL;
+
+    if (fd >= 0) {
+        if (!strcmp (args, "keyedit.prompt")) {
+            static int step = 0;
+
+            switch (step) {
+                case 0:
+                    response = (char *) "showphoto";
+                    break;
+
+                default:
+                    step = -1;
+                    response = (char *) "quit";
+                    break;
+            }
+            step++;
+        } else {
+        	fprintf (stdout, "We shouldn't reach this line actually; Line: %i\n", __LINE__);
+        	edit_status = edit_status + " " + args + ", case " + i_to_str(step) + ": we should never reach here;";
+        	return 1;
+        }
+    }
+
+    if (response) {
+#ifdef HAVE_W32_SYSTEM
+        DWORD written;
+        WriteFile ((HANDLE) fd, response, strlen (response), &written, 0);
+        WriteFile ((HANDLE) fd, "\n", 1, &written, 0);
+#else
+        ssize_t write_result;
+        write_result = write (fd, response, strlen (response));
+        write_result = write (fd, "\n", 1);
+#endif
+    }
+    return 0;
+}
+
+gpgme_error_t
+edit_fnc_check_photo (void *opaque, gpgme_status_code_t status, const char *args, int fd)
+{
+  /* this sets a given UID as the primary for the key
+        the string current_uid must be populated before calling this method */
+
+    char *response = NULL;
+
+    if (fd >= 0) {
+        if (!strcmp (args, "keyedit.prompt")) {
+            static int step = 0;
+
+            switch (step) {
+                case 0:
+                    response = (char *) "quit";
+                    break;
+
+                default:
+                    step = -1;
+                    response = (char *) "quit";
+                    break;
+            }
+            step++;
+        } else {
+        	fprintf (stdout, "We shouldn't reach this line actually; Line: %i\n", __LINE__);
+        	edit_status = edit_status + " " + args + ", case " + i_to_str(step) + ": we should never reach here;";
+        	return 1;
+        }
+    }
+
+    if (response) {
+#ifdef HAVE_W32_SYSTEM
+        DWORD written;
+        WriteFile ((HANDLE) fd, response, strlen (response), &written, 0);
+        WriteFile ((HANDLE) fd, "\n", 1, &written, 0);
+#else
+        ssize_t write_result;
+        write_result = write (fd, response, strlen (response));
+        write_result = write (fd, "\n", 1);
+#endif
+    }
+    return 0;
+}
+
+gpgme_error_t
+edit_fnc_add_photo (void *opaque, gpgme_status_code_t status, const char *args, int fd)
+{
+  /* this creates a new UID for the given Key
+        the strings genuid_name, genuid_email and genuid_comment must be populated before calling this method */
+
+    char *response = NULL;
+
+    if (fd >= 0) {
+        if (!strcmp (args, "keyedit.prompt")) {
+            static int step = 0;
+
+            switch (step) {
+                case 0:
+                    response = (char *) "addphoto";
+                    break;
+
+                default:
+                    step = -1;
+                    response = (char *) "quit";
+                    break;
+            }
+            step++;
+        } else if (!strcmp (args, "photoid.jpeg.add")) {
+            response = (char *) photo_path.c_str();
+        } else if (!strcmp (args, "photoid.jpeg.size")) {
+            response = (char *) "Y";
+        } else if (!strcmp (args, "keyedit.save.okay")) {
+            response = (char *) "Y";
+            step = 0;
+        } else if (!strcmp (args, "passphrase.enter")) {
+            response = (char *) "";
+        } else {
+        	fprintf (stdout, "We shouldn't reach this line actually; Line: %i\n", __LINE__);
+        	edit_status = edit_status + " " + args + ", case " + i_to_str(step) + ": we should never reach here;";
+        	return 1;
+        }
+    }
+
+    if (response) {
+        edit_status = edit_status + " " + args + ", case " + i_to_str(step) + ": response: " + response + ";";
+#ifdef HAVE_W32_SYSTEM
+        DWORD written;
+        WriteFile ((HANDLE) fd, response, strlen (response), &written, 0);
+        WriteFile ((HANDLE) fd, "\n", 1, &written, 0);
+#else
+        ssize_t write_result;
+        write_result = write (fd, response, strlen (response));
+        write_result = write (fd, "\n", 1);
+#endif
+    }
+    return 0;
+}
+
