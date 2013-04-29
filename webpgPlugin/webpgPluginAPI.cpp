@@ -340,14 +340,18 @@ gpgme_ctx_t webpgPluginAPI::get_gpgme_ctx()
 #endif
 
     err = gpgme_new (&ctx);
-    gpgme_engine_info_t engine_info = gpgme_ctx_get_engine_info (ctx);
-    err = gpgme_ctx_set_engine_info (ctx, engine_info->protocol,
-        (GNUPGBIN.length() > 0) ? (char *) GNUPGBIN.c_str() : NULL,
-        (GNUPGHOME.length() > 0) ? (char *) GNUPGHOME.c_str() : NULL);
+    if (GNUPGBIN.length() > 0
+    || GNUPGHOME.length() > 0) {
+        gpgme_engine_info_t engine_info = gpgme_ctx_get_engine_info (ctx);
+        err = gpgme_ctx_set_engine_info (ctx, engine_info->protocol,
+            (GNUPGBIN.length() > 0) ? (char *) GNUPGBIN.c_str() : NULL,
+            (GNUPGHOME.length() > 0) ? (char *) GNUPGHOME.c_str() : NULL);
+    }
 
     // Check the GPGCONF variable, if not null, set the GPGCONF
     //  engine to use that path
-    err = gpgme_ctx_set_engine_info (ctx, GPGME_PROTOCOL_GPGCONF,
+    if (GPGCONF.length() > 0)
+        err = gpgme_ctx_set_engine_info (ctx, GPGME_PROTOCOL_GPGCONF,
             (GPGCONF.length() > 0) ? (char *) GPGCONF.c_str() : NULL, NULL);
 
     gpgme_set_textmode (ctx, 1);
