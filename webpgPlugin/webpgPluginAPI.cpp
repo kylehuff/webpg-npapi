@@ -811,7 +811,7 @@ FB::VariantMap webpgPluginAPI::getKeyList(const std::string& name, int secret_on
         key_map["revoked"] = key->revoked? true : false;
         key_map["disabled"] = key->disabled? true : false;
         key_map["invalid"] = key->invalid? true : false;
-        key_map["secret"] = key->secret? true : false;
+        key_map["secret"] = key->secret? true : (secret_only) ? true : false;
         key_map["protocol"] = key->protocol == GPGME_PROTOCOL_OpenPGP? "OpenPGP":
             key->protocol == GPGME_PROTOCOL_CMS? "CMS":
             key->protocol == GPGME_PROTOCOL_UNKNOWN? "Unknown": "[?]";
@@ -2447,6 +2447,10 @@ std::string webpgPluginAPI::gpgGenKeyWorker(const std::string& key_type, const s
     gpgme_genkey_result_t result;
 
     gpgme_set_progress_cb (ctx, cb_status, APIObj);
+
+    edit_status = "gpgGenKeyWorker(key_type='" + key_type + "', key_length='" + key_length + "', subkey_type='" + subkey_type + 
+        "', subkey_length='" + subkey_length + "', name_real='" + name_real + "', name_comment='" + name_comment +
+        "', name_email='" + name_email + "', expire_date='" + expire_date + "');\n";
 
     err = gpgme_op_genkey (ctx, parms, NULL, NULL);
     if (err)
