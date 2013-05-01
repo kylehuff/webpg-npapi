@@ -1063,21 +1063,31 @@ edit_fnc_add_photo (void *opaque, gpgme_status_code_t status, const char *args, 
 
     if (fd >= 0) {
         if (!strcmp (args, "keyedit.prompt")) {
-            static int step = 0;
-
             switch (step) {
                 case 0:
                     response = (char *) "addphoto";
                     break;
 
                 default:
-                    step = -1;
+                    step = 0;
                     response = (char *) "quit";
                     break;
             }
             step++;
         } else if (!strcmp (args, "photoid.jpeg.add")) {
-            response = (char *) photo_path.c_str();
+            static int jstep = 0;
+            switch (jstep) {
+                case 0:
+                    response = (char *) photo_path.c_str();
+                    break;
+
+                default:
+                    edit_status = edit_status + " " + args + ", case " + i_to_str(step) + ": response: returning now...";
+                    jstep = 0;
+                    step = 0;
+                    return 1;
+            }
+            jstep++;
         } else if (!strcmp (args, "photoid.jpeg.size")) {
             response = (char *) "Y";
         } else if (!strcmp (args, "keyedit.save.okay")) {
