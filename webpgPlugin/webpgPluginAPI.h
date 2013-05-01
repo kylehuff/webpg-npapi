@@ -692,6 +692,8 @@ public:
     FB::variant gpgAddPhoto(const std::string& keyid, const std::string& photo_name,
         const std::string& photo_data);
 
+    FB::variant gpgGetPhotoInfo(const std::string& keyid);
+
     ///////////////////////////////////////////////////////////////////////////////
     /// @fn std::string webpgPluginAPI::get_version()
     ///

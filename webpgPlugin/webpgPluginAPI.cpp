@@ -160,6 +160,7 @@ webpgPluginAPI::webpgPluginAPI(const webpgPluginPtr& plugin, const FB::BrowserHo
         registerMethod("gpgChangePassphrase", make_method(this, &webpgPluginAPI::gpgChangePassphrase));
         registerMethod("gpgShowPhoto", make_method(this, &webpgPluginAPI::gpgShowPhoto));
         registerMethod("gpgAddPhoto", make_method(this, &webpgPluginAPI::gpgAddPhoto));
+        registerMethod("gpgGetPhotoInfo", make_method(this, &webpgPluginAPI::gpgGetPhotoInfo));
 
         registerMethod("setTempGPGOption", make_method(this, &webpgPluginAPI::setTempGPGOption));
         registerMethod("restoreGPGConfig", make_method(this, &webpgPluginAPI::restoreGPGConfig));
@@ -734,20 +735,9 @@ FB::VariantMap webpgPluginAPI::getKeyList(const std::string& name, int secret_on
     gpgme_error_t err;
     gpgme_key_t key;
     gpgme_keylist_result_t result;
-    gpgme_user_id_t uid;
-    gpgme_key_sig_t sig;
     gpgme_sig_notation_t notation;
-    gpgme_subkey_t subkey;
     FB::VariantMap keylist_map;
-    std::string out_buf;
     gpgme_ctx_t edit_ctx = get_gpgme_ctx();
-    FB::VariantMap uid_map;
-    int nuids;
-    int nsigs;
-    int nsubs;
-    int nnotations;
-    int photo_count;
-    gpgme_data_t out;
     /* set protocol to use in our context */
     err = gpgme_set_protocol(ctx, GPGME_PROTOCOL_OpenPGP);
     if(err != GPG_ERR_NO_ERROR)
@@ -780,21 +770,12 @@ FB::VariantMap webpgPluginAPI::getKeyList(const std::string& name, int secret_on
     if(err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
 
-    boost::regex uat_exp("^uat:");
-
     while (!(err = gpgme_op_keylist_next (ctx, &key)))
      {
         /*declare nuids (Number of UIDs) 
             and nsigs (Number of signatures)
             and nsubs (Number of Subkeys)*/
         FB::VariantMap key_map;
-
-        /* check for a photo */
-        gpgme_data_new (&out);
-        gpgme_key_t *edit_key = &key;
-        gpgme_op_edit (edit_ctx, *edit_key, edit_fnc_check_photo, out, out);
-        size_t out_size = 0;
-        out_buf = gpgme_data_release_and_get_mem (out, &out_size);
 
         /* if secret keys being returned, re-retrieve the key so we get all of the key info */ 
         if(secret_only != 0 && key->subkeys && key->subkeys->keyid)
@@ -826,8 +807,9 @@ FB::VariantMap webpgPluginAPI::getKeyList(const std::string& name, int secret_on
             key->owner_trust == GPGME_VALIDITY_MARGINAL? "marginal":
             key->owner_trust == GPGME_VALIDITY_FULL? "full":
             key->owner_trust == GPGME_VALIDITY_ULTIMATE? "ultimate": "[?]";
-        key_map["photo_provided"] = (out_buf.find("uat:") != std::string::npos);
 
+        int nsubs;
+        gpgme_subkey_t subkey;
         FB::VariantMap subkeys_map;
         for (nsubs=0, subkey=key->subkeys; subkey; subkey = subkey->next, nsubs++) {
             FB::VariantMap subkey_item_map;
@@ -851,7 +833,8 @@ FB::VariantMap webpgPluginAPI::getKeyList(const std::string& name, int secret_on
         }
 
         key_map["subkeys"] = subkeys_map;
-
+        int nuids;
+        gpgme_user_id_t uid;
         FB::VariantMap uids_map;
         for (nuids=0, uid=key->uids; uid; uid = uid->next, nuids++) {
             FB::VariantMap uid_item_map;
@@ -861,8 +844,9 @@ FB::VariantMap webpgPluginAPI::getKeyList(const std::string& name, int secret_on
             uid_item_map["invalid"] = uid->invalid? true : false;
             uid_item_map["revoked"] = uid->revoked? true : false;
 
+            int nsigs;
+            gpgme_key_sig_t sig;
             FB::VariantMap signatures_map;
-
             for (nsigs=0, sig=uid->signatures; sig; sig = sig->next, nsigs++) {
                 FB::VariantMap signature_map, notations_map;
                 signature_map["keyid"] = nonnull (sig->keyid);
@@ -878,8 +862,9 @@ FB::VariantMap webpgPluginAPI::getKeyList(const std::string& name, int secret_on
                 signature_map["name"] = nonnull (sig->name);
                 signature_map["comment"] = nonnull (sig->comment);
                 signature_map["email"] = nonnull (sig->email);
+                int nnotations;
                 FB::VariantMap notation_map;
-                for (nnotations, notation=sig->notations; notation; notation = notation->next, nnotations++) {
+                for (nnotations=0, notation=sig->notations; notation; notation = notation->next, nnotations++) {
                     notation_map["name"] = nonnull (notation->name);
                     notation_map["name_len"] = notation->name_len;
                     notation_map["value"] = nonnull (notation->value);
@@ -902,20 +887,6 @@ FB::VariantMap webpgPluginAPI::getKeyList(const std::string& name, int secret_on
         key_map["uids"] = uids_map;
         key_map["nuids"] = nuids;
 
-        boost::sregex_token_iterator i(out_buf.begin(), out_buf.end(), uat_exp, 0);
-        boost::sregex_token_iterator j;
-        photo_count = 0;
-        FB::VariantMap photos_map;
-        while(i != j) {
-            photo_count++;
-            i++;
-            FB::VariantMap photo_map;
-            photo_map["relative_index"] = photo_count - 1;
-            photo_map["absolute_index"] = nuids + photo_count;
-            photos_map[i_to_str(photo_count - 1)] = photo_map;
-        }
-        key_map["photos"] = photos_map;
-        key_map["photos_provided"] = photo_count;
         keylist_map[key->subkeys->keyid] = key_map;
         gpgme_key_unref (key);
     }
@@ -3769,7 +3740,7 @@ void webpgPluginAPI::gpgShowPhoto(const std::string& keyid) {
         gpgme_data_t out;
         gpgme_data_new (&out);
         gpgme_op_edit (edit_ctx, key, edit_fnc_show_photo, out, out);
-        gpgme_data_release_and_get_mem (out, &out_size);
+        edit_status = gpgme_data_release_and_get_mem (out, &out_size);
     }
     gpgme_op_keylist_end (ctx);
     gpgme_release (ctx);
@@ -3830,6 +3801,7 @@ FB::variant webpgPluginAPI::gpgAddPhoto(const std::string& keyid, const std::str
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
 
     edit_status = "gpgAddPhoto(keyid='" + keyid + "', path='" + photo_path + "');\n";
+
     err = gpgme_op_edit (ctx, key, edit_fnc_add_photo, out, out);
     if (err != GPG_ERR_NO_ERROR)
         return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
@@ -3847,6 +3819,65 @@ FB::variant webpgPluginAPI::gpgAddPhoto(const std::string& keyid, const std::str
     response["error"] = false;
     response["edit_status"] = edit_status;
     response["result"] = "Photo added";
+
+    return response;
+}
+
+FB::variant webpgPluginAPI::gpgGetPhotoInfo(const std::string& keyid) {
+    gpgme_ctx_t ctx = get_gpgme_ctx();
+    gpgme_error_t err;
+    gpgme_data_t out = NULL;
+    gpgme_key_t key = NULL;
+    gpgme_user_id_t uid;
+    FB::VariantMap response;
+    boost::regex uat_exp("^uat:");
+    size_t out_size = 0;
+    int nuids = 0;
+
+    err = gpgme_op_keylist_start (ctx, keyid.c_str(), 0);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_op_keylist_next (ctx, &key);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    err = gpgme_op_keylist_end (ctx);
+    if (err != GPG_ERR_NO_ERROR)
+        return get_error_map(__func__, gpgme_err_code (err), gpgme_strerror (err), __LINE__, __FILE__);
+
+    /* check for a photo */
+    gpgme_data_new (&out);
+    gpgme_op_edit (ctx, key, edit_fnc_check_photo, NULL, out);
+    std::string out_buf = gpgme_data_release_and_get_mem (out, &out_size);
+
+    response["photos_provided"] = 0;
+
+    if (out_buf.find("uat:") == std::string::npos)
+        return response;
+
+    for (nuids=0, uid=key->uids; uid; uid = uid->next) {
+        nuids++;
+    }
+
+    boost::sregex_token_iterator i(out_buf.begin(), out_buf.end(), uat_exp, 0);
+    boost::sregex_token_iterator j;
+    int photo_count = 0;
+    FB::VariantMap photos_map;
+    while(i != j) {
+        photo_count++;
+        i++;
+        FB::VariantMap photo_map;
+        photo_map["relative_index"] = photo_count - 1;
+        photo_map["absolute_index"] = nuids + photo_count;
+        photos_map[i_to_str(photo_count - 1)] = photo_map;
+    }
+
+    response["photos"] = photos_map;
+    response["photos_provided"] = photo_count;
+
+    gpgme_key_unref (key);
+    gpgme_release (ctx);
 
     return response;
 }
