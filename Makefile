@@ -10,10 +10,6 @@ else
 		echo "$$VS_VER_INPUT";)
 endif
 
-ifeq ($(OS), WINDOWS)
-
-endif
-
 all: get-deps build
 .PHONY: all
 
@@ -42,7 +38,7 @@ endif
 
 clean:
 ifeq ($(OS), WINDOWS)
-	rmdir /s /q build
+	rmdir /S /Q build
 else
 	rm -rf ./build
 endif
