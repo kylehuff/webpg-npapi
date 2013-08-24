@@ -148,3 +148,7 @@ The compiled .dll file can be found at:
 ```
 build\bin\webpgPlugin\MinSizeRel\npwebpgPlugin.dll
 ```
+
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/kylehuff/webpg-npapi/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
