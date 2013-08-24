@@ -1,3 +1,5 @@
+[![Build Badge](http://build.mxprime.net/buildStatus/icon?job=webpg-npapi)]
+
 Description
 ===========
 webpg-npapi is an [NPAPI](https://developer.mozilla.org/en-US/docs/Plugins) plugin project that provides GnuPG related Public/Private Key operations for use in major browsers.
