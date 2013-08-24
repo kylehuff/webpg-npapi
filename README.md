@@ -1,4 +1,4 @@
-[![Build Badge](http://build.mxprime.net/buildStatus/icon?job=webpg-npapi)]
+![Build Badge](http://build.mxprime.net/buildStatus/icon?job=webpg-npapi)
 
 Description
 ===========
