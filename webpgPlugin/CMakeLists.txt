@@ -16,6 +16,13 @@ file (GLOB GENERAL RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
     [^.]*.cmake
     )
 
+file (GLOB LIBWEBPG RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
+    libwebpg/*.cpp
+    libwebpg/*.cc
+    libwebpg/*.h
+    libwebpg/*.cmake
+    )
+
 include_directories(${PLUGIN_INCLUDE_DIRS})
 
 # Generated files are stored in ${GENERATED} by the project configuration
@@ -31,8 +38,18 @@ SOURCE_GROUP(Generated FILES
 
 SET( SOURCES
     ${GENERAL}
+    ${LIBWEBPG}
     ${GENERATED}
     )
+
+add_definitions(
+    -D_FILE_OFFSET_BITS=64
+    -DCURL_STATICLIB
+    -I ${CMAKE_CURRENT_SOURCE_DIR}/libwebpg/libs/libcurl/${ARCH_DIR}/include
+    -I ${CMAKE_CURRENT_SOURCE_DIR}/libwebpg/libs/libgpgme/${ARCH_DIR}/include
+    -I ${CMAKE_CURRENT_SOURCE_DIR}/libwebpg/libs/libgpg-error/${ARCH_DIR}/include
+    -I ${CMAKE_CURRENT_SOURCE_DIR}/libwebpg/libs/libmimetic/include
+)
 
 # This will include Win/projectDef.cmake, X11/projectDef.cmake, Mac/projectDef 
 # depending on the platform

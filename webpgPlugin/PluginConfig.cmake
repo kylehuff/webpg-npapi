@@ -103,4 +103,3 @@ set(FBMAC_USE_INVALIDATINGCOREANIMATION 0)
 
 add_boost_library(regex)
 add_firebreath_library(jsoncpp)
-#add_firebreath_library(log4cplus)

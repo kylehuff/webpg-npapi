@@ -1,3 +1,0 @@
-version: 2.0.3
-configure flags: --enable-static
-architecture: i386, x86_64

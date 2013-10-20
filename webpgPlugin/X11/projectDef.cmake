@@ -17,7 +17,6 @@ SOURCE_GROUP(X11 FILES ${PLATFORM})
 
 # use this to add preprocessor definitions
 add_definitions(
-    -D_FILE_OFFSET_BITS=64
 )
 
 IF(EXTENSIONIZE)
@@ -40,16 +39,27 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 )
 
 add_library(gpgme STATIC IMPORTED)
-set_property(TARGET gpgme PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/libs/libgpgme/${ARCH_DIR}/libgpgme.a)
+set_property(TARGET gpgme PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/libwebpg/libs/libgpgme/${ARCH_DIR}/libgpgme.a)
 add_library(gpg-error STATIC IMPORTED)
-set_property(TARGET gpg-error PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/libs/libgpg-error/${ARCH_DIR}/libgpg-error.a)
+set_property(TARGET gpg-error PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/libwebpg/libs/libgpg-error/${ARCH_DIR}/libgpg-error.a)
 add_library(assuan STATIC IMPORTED)
-set_property(TARGET assuan PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/libs/libassuan/${ARCH_DIR}/libassuan.a)
+set_property(TARGET assuan PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/libwebpg/libs/libassuan/${ARCH_DIR}/libassuan.a)
+add_library(curl STATIC IMPORTED)
+set_property(TARGET curl PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/libwebpg/libs/libcurl/${ARCH_DIR}/libcurl.a)
+add_library(mimetic STATIC IMPORTED)
+set_property(TARGET mimetic PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/libwebpg/libs/libmimetic/${ARCH_DIR}/libmimetic.a)
 
-# add library dependencies here; leave ${PLUGIN_INTERNAL_DEPS} there unless you know what you're doing!
 target_link_libraries(${PROJECT_NAME}
     ${PLUGIN_INTERNAL_DEPS}
     gpgme
     assuan
     gpg-error
+    curl
+    mimetic
     )
+
+IF (CMAKE_SYSTEM_NAME MATCHES "Linux")
+    target_link_libraries(${PROJECT_NAME}
+        rt
+    )
+ENDIF()

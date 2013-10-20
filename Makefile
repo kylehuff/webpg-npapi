@@ -39,7 +39,9 @@ endif
 clean:
 ifeq ($(OS), WINDOWS)
 	rmdir /S /Q build
+	rmdir /S /Q CMakeFiles
 else
 	rm -rf ./build
+	rm -rf ./CMakeFiles
 endif
 .PHONY: clean

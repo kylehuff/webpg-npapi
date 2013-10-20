@@ -1,3 +1,6 @@
 [submodule "firebreath"]
 	path = firebreath
 	url = git://github.com/firebreath/FireBreath.git
+[submodule "webpgPlugin/libwebpg"]
+	path = webpgPlugin/libwebpg
+	url = git://github.com/kylehuff/libwebpg.git

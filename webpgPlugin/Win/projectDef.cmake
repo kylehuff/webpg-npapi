@@ -49,18 +49,24 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 # still work. Your cert should only be on the build machine and shouldn't be in
 # source control!
 # -- uncomment lines below this to enable signing --
-#firebreath_sign_plugin(${PROJECT_NAME}
-#    "${CMAKE_CURRENT_SOURCE_DIR}/sign/certificate.pfx"
-#    "${CMAKE_CURRENT_SOURCE_DIR}/sign/passphrase.txt"
-#    "http://timestamp.verisign.com/scripts/timestamp.dll")
+firebreath_sign_plugin(${PROJECT_NAME}
+    "${CMAKE_CURRENT_SOURCE_DIR}/sign/certificate.pfx"
+    "${CMAKE_CURRENT_SOURCE_DIR}/sign/passphrase.txt"
+    "http://timestamp.verisign.com/scripts/timestamp.dll")
 
-add_library(libgpgme STATIC IMPORTED)
-set_property(TARGET libgpgme PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/libs/libgpgme/WINNT_x86-msvc/libgpgme.lib)
+add_library(gpgme STATIC IMPORTED)
+set_property(TARGET gpgme PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/libwebpg/libs/libgpgme/${ARCH_DIR}/libgpgme.lib)
+add_library(gpg-error STATIC IMPORTED)
+set_property(TARGET gpg-error PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/libwebpg/libs/libgpg-error/${ARCH_DIR}/libgpg-error.lib)
+add_library(assuan STATIC IMPORTED)
+set_property(TARGET assuan PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/libwebpg/libs/libassuan/${ARCH_DIR}/libassuan.lib)
 
 # add library dependencies here; leave ${PLUGIN_INTERNAL_DEPS} there unless you know what you're doing!
 target_link_libraries(${PROJECT_NAME}
     ${PLUGIN_INTERNAL_DEPS}
-    libgpgme
+    gpgme
+    assuan
+    gpg-error
     )
 
 #set(WIX_HEAT_FLAGS
