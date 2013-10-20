@@ -91,9 +91,9 @@ FB_FORWARD_PTR(webpg);
 #define NEWLINE '\n'
 
 typedef struct {
-	char *data;
-	int body_size;
-	int body_pos;
+  char *data;
+  int body_size;
+  int body_pos;
 } readarg_t;
 
 const int kMaxCharPerLine = 76;
