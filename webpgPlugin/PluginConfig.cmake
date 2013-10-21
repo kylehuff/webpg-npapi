@@ -77,7 +77,7 @@ ENDIF(EXTENSIONIZE)
 # strings
 set(FBSTRING_CompanyName "CURE|THE|ITCH")
 set(FBSTRING_FileDescription "A browser agnostic NPAPI interface to GnuPG")
-set(FBSTRING_PLUGIN_VERSION "0.6.5")
+set(FBSTRING_PLUGIN_VERSION "0.7.0")
 set(FBSTRING_LegalCopyright "Copyright 2011-2013 CURE|THE|ITCH")
 set(FBSTRING_PluginFileName "np${PLUGIN_NAME}${PLUGIN_EXTENTIONIZE_NAME}-v${FBSTRING_PLUGIN_VERSION}-${ARCH_DIR}")
 set(FBSTRING_ProductName "WebPG")
