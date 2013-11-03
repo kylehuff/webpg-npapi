@@ -1,4 +1,4 @@
-![Build Badge](http://build.mxprime.net/buildStatus/icon?job=webpg-npapi)
+[![Build Status](https://travis-ci.org/webpg/webpg-npapi.png)](https://travis-ci.org/webpg/webpg-npapi)
 
 Description
 ===========
