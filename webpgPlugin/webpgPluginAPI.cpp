@@ -1383,7 +1383,7 @@ static size_t readcb(void *ptr, size_t size, size_t nmemb, void *stream) {
 }
 
 FB::variant webpgPluginAPI::sendMessage(const FB::VariantMap& msgInfo) {
-  int nsigner, nrecip;
+  int nrecip;
   std::string username = VariantValue(msgInfo, "username").convert_cast<std::string>();
   std::string bearer = VariantValue(msgInfo, "bearer").convert_cast<std::string>();
   FB::VariantMap recipients_m = VariantValue(msgInfo, "recipients").convert_cast<FB::VariantMap>();

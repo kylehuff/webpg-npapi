@@ -48,7 +48,7 @@ add_definitions(
     -I ${CMAKE_CURRENT_SOURCE_DIR}/libwebpg/libs/libcurl/${ARCH_DIR}/include
     -I ${CMAKE_CURRENT_SOURCE_DIR}/libwebpg/libs/libgpgme/${ARCH_DIR}/include
     -I ${CMAKE_CURRENT_SOURCE_DIR}/libwebpg/libs/libgpg-error/${ARCH_DIR}/include
-    -I ${CMAKE_CURRENT_SOURCE_DIR}/libwebpg/libs/libmimetic/include
+    -I ${CMAKE_CURRENT_SOURCE_DIR}/libwebpg/libs/libmimetic/${ARCH_DIR}/include
 )
 
 # This will include Win/projectDef.cmake, X11/projectDef.cmake, Mac/projectDef 
