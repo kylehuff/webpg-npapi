@@ -65,6 +65,7 @@ Copyright 2011 Kyle L. Huff, CURETHEITCH development team
 #include "JSAPIAuto.h"
 #include "BrowserHost.h"
 #include <boost/optional.hpp>
+#include <boost/algorithm/string.hpp>
 #include <curl.h>
 #include <mimetic/mimetic.h>
 #include <mimetic/streambufs.h>
