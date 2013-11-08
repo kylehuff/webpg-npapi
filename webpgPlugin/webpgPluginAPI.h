@@ -66,8 +66,12 @@ Copyright 2011 Kyle L. Huff, CURETHEITCH development team
 #include "BrowserHost.h"
 #include <boost/optional.hpp>
 #include <curl.h>
-#include <mimetic.h>
-#include <streambufs.h>
+#include <mimetic/mimetic.h>
+#include <mimetic/streambufs.h>
+
+#if _MSC_VER
+#define snprintf _snprintf
+#endif
 
 #include "libwebpg/webpg.h"
 
