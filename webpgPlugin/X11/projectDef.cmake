@@ -1,4 +1,4 @@
-#/**********************************************************\ 
+#/**********************************************************\
 # Auto-generated X11 project definition file for the
 # webpg-plugin project
 #\**********************************************************/
@@ -17,6 +17,8 @@ SOURCE_GROUP(X11 FILES ${PLATFORM})
 
 # use this to add preprocessor definitions
 add_definitions(
+  "-D_WIN32_WINNT=0x0501"
+  "-D_WIN32_WINDOWS"
 )
 
 IF(EXTENSIONIZE)
