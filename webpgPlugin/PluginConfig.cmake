@@ -32,6 +32,9 @@ set(IFBComEventSource_GUID 7e55f947-88bb-5929-bd9d-7395de30fd0f)
 set(ACTIVEX_PROGID "CURETHEITCH.webpg-npapi")
 set(MOZILLA_PLUGINID "curetheitch.com/webpg-npapi")
 
+# enable pre-compiled headers
+set(FB_USE_PCH TRUE)
+
 # Sets the plugin in "extension only mode"
 #   See note at http://webpg.org/docs/webpg-npapi/classwebpg_plugin_a_p_i_af99142391c5049c827cbe035812954f4.html
 set(EXTENSIONIZE TRUE)
