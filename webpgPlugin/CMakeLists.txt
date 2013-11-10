@@ -50,6 +50,7 @@ SET( SOURCES
 add_definitions(
     -D_FILE_OFFSET_BITS=64
     -DCURL_STATICLIB
+    -DH_LIBWEBPG
 )
 
 # This will include Win/projectDef.cmake, X11/projectDef.cmake, Mac/projectDef 
