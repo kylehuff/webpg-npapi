@@ -46,6 +46,10 @@ add_library(assuan STATIC IMPORTED)
 set_property(TARGET assuan PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/libwebpg/libs/libassuan/${ARCH_DIR}/libassuan.a)
 add_library(curl STATIC IMPORTED)
 set_property(TARGET curl PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/libwebpg/libs/libcurl/${ARCH_DIR}/libcurl.a)
+add_library(cyassl STATIC IMPORTED)
+set_property(TARGET cyassl PROPERTY IMPORTED_LOCATION /opt/local/lib/libcyassl.a)
+add_library(zlib STATIC IMPORTED)
+set_property(TARGET zlib PROPERTY IMPORTED_LOCATION /opt/local/lib/libz.a)
 add_library(mimetic STATIC IMPORTED)
 set_property(TARGET mimetic PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/libwebpg/libs/libmimetic/${ARCH_DIR}/libmimetic.a)
 
@@ -55,4 +59,8 @@ target_link_libraries(${PROJECT_NAME}
     gpgme
     gpg-error
     assuan
+    cyassl
+    zlib
+    curl
+    mimetic
     )
