@@ -340,9 +340,9 @@ class webpgPluginAPI : public FB::JSAPIAuto
                         const std::string& keyid,
                         long uid,
                         const std::string& with_keyid,
-                        long local_only=NULL,
-                        long trust_sign=NULL,
-                        long trust_level=NULL,
+                        long local_only,
+                        long trust_sign,
+                        long trust_level,
                         const boost::optional<std::string>& notation_name=NULL,
                         const boost::optional<std::string>& notation_value=NULL
     );

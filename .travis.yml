@@ -4,3 +4,4 @@ script: make build
 language: cpp
 compiler:
   - gcc
+  - clang
