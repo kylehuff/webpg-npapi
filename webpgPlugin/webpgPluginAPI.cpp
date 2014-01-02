@@ -403,7 +403,7 @@ FB::variant webpgPluginAPI::getPrivateKeyList(
 ) {
   Json::Value json_value;
 
-  if (*async == true) {
+  if (async == true) {
     boost::thread keylist_thread(
       boost::bind(
         &webpgPluginAPI::getKeyListThreadCaller,
@@ -463,7 +463,7 @@ FB::variant webpgPluginAPI::getNamedKey(
 ) {
   Json::Value json_value;
 
-  if (*async == true) {
+  if (async == true) {
     boost::thread keylist_thread(
       boost::bind(
         &webpgPluginAPI::getKeyListThreadCaller,
