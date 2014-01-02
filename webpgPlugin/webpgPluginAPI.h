@@ -152,8 +152,8 @@ class webpgPluginAPI : public FB::JSAPIAuto
     ///         Public Keys from the keyring.
     ///////////////////////////////////////////////////////////////////////////
     FB::variant getPublicKeyList(
-      boost::optional<bool> fast,
-      boost::optional<bool> async
+      const boost::optional<bool> fast,
+      const boost::optional<bool> async
     );
 
     void threaded_getPublicKeyList();
@@ -166,8 +166,8 @@ class webpgPluginAPI : public FB::JSAPIAuto
     ///         Private Keys from the keyring.
     ///////////////////////////////////////////////////////////////////////////
     FB::variant getPrivateKeyList(
-        boost::optional<bool> fast,
-        boost::optional<bool> async
+        const boost::optional<bool> fast,
+        const boost::optional<bool> async
     );
 
     ///////////////////////////////////////////////////////////////////////////
@@ -179,8 +179,8 @@ class webpgPluginAPI : public FB::JSAPIAuto
     ///////////////////////////////////////////////////////////////////////////
     FB::variant getNamedKey(
         const std::string& name,
-        boost::optional<bool> fast,
-        boost::optional<bool> async
+        const boost::optional<bool> fast,
+        const boost::optional<bool> async
     );
 
     ///////////////////////////////////////////////////////////////////////////

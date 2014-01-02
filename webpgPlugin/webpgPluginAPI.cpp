@@ -341,10 +341,11 @@ void webpgPluginAPI::getKeyListThreadCaller(
         secret_only=false which returns all Public Keys in the keyring.
 */
 FB::variant webpgPluginAPI::getPublicKeyList(
-    boost::optional<bool> fast=false,
-    boost::optional<bool> async=false
+    const boost::optional<bool> fast=false,
+    const boost::optional<bool> async=false
 ) {
   Json::Value json_value;
+  bool fastListMode = (fast==true);
 
   if (async == true) {
     boost::thread keylist_thread(
@@ -352,14 +353,14 @@ FB::variant webpgPluginAPI::getPublicKeyList(
         &webpgPluginAPI::getKeyListThreadCaller,
         "",
         false,
-        *fast,
+        fastListMode,
         this
       )
     );
     json_value["status"] = "queued";
   } else {
     // Retrieve the public keylist
-    json_value = m_webpgAPI->getPublicKeyList(fast);
+    json_value = m_webpgAPI->getPublicKeyList(fastListMode);
   }
 
   // Retrieve a reference to the DOM Window
@@ -398,10 +399,11 @@ FB::variant webpgPluginAPI::getPublicKeyList(
         secret_only=true which returns all Public Keys in the keyring.
 */
 FB::variant webpgPluginAPI::getPrivateKeyList(
-    boost::optional<bool>fast=false,
-    boost::optional<bool> async=false
+    const boost::optional<bool>fast=false,
+    const boost::optional<bool> async=false
 ) {
   Json::Value json_value;
+  bool fastListMode = (fast==true);
 
   if (async == true) {
     boost::thread keylist_thread(
@@ -409,14 +411,14 @@ FB::variant webpgPluginAPI::getPrivateKeyList(
         &webpgPluginAPI::getKeyListThreadCaller,
         "",
         true,
-        *fast,
+        fastListMode,
         this
       )
     );
     json_value["status"] = "queued";
   } else {
     // Retrieve the public keylist
-    json_value = m_webpgAPI->getPrivateKeyList(fast);
+    json_value = m_webpgAPI->getPrivateKeyList(fastListMode);
   }
 
   // Retrieve a reference to the DOM Window
@@ -458,10 +460,11 @@ FB::variant webpgPluginAPI::getPrivateKeyList(
 */
 FB::variant webpgPluginAPI::getNamedKey(
     const std::string& name,
-    boost::optional<bool> fast=false,
-    boost::optional<bool> async=false
+    const boost::optional<bool> fast=false,
+    const boost::optional<bool> async=false
 ) {
   Json::Value json_value;
+  bool fastListMode = (fast==true);
 
   if (async == true) {
     boost::thread keylist_thread(
@@ -469,7 +472,7 @@ FB::variant webpgPluginAPI::getNamedKey(
         &webpgPluginAPI::getKeyListThreadCaller,
         name,
         false,
-        *fast,
+        fastListMode,
         this
       )
     );
