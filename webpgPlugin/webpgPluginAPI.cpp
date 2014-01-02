@@ -1,4 +1,4 @@
-/**********************************************************\ 
+/**********************************************************\
 Original Author: Kyle L. Huff (kylehuff)
 
 Created:    Jan 14, 2011
@@ -35,7 +35,7 @@ using namespace mimetic;
 /// @see FB::JSAPIAuto::registerProperty
 /// @see FB::JSAPIAuto::registerEvent
 ///
-/// @note if _EXTENSIONIZE is ture/nonnull, the plugin will only register the 
+/// @note if _EXTENSIONIZE is ture/nonnull, the plugin will only register the
 ///         provided methods if the plugin was loaded from a page at URL
 ///         "chrome://" (Mozilla products), "chrome-extension://" (Google
 ///         Chrome/Chromium), "widget://" (Opera) or "safari-extension://" to
@@ -65,132 +65,186 @@ webpgPluginAPI::webpgPluginAPI(const webpgPluginPtr& plugin,
 
   if (allow_op == true) {
     registerMethod("getPublicKeyList",
-                      make_method(this, &webpgPluginAPI::getPublicKeyList));
+      make_method(this, &webpgPluginAPI::getPublicKeyList)
+    );
     registerMethod("getPrivateKeyList",
-                      make_method(this, &webpgPluginAPI::getPrivateKeyList));
+      make_method(this, &webpgPluginAPI::getPrivateKeyList)
+    );
     registerMethod("getNamedKey",
-                      make_method(this, &webpgPluginAPI::getNamedKey));
+      make_method(this, &webpgPluginAPI::getNamedKey)
+    );
     registerMethod("getExternalKey",
-                      make_method(this, &webpgPluginAPI::getExternalKey));
+      make_method(this, &webpgPluginAPI::getExternalKey)
+    );
     registerMethod("gpgSetPreference",
-                      make_method(this, &webpgPluginAPI::gpgSetPreference));
+      make_method(this, &webpgPluginAPI::gpgSetPreference)
+    );
     registerMethod("gpgGetPreference",
-                      make_method(this, &webpgPluginAPI::gpgGetPreference));
+      make_method(this, &webpgPluginAPI::gpgGetPreference)
+    );
     registerMethod("gpgSetGroup",
-                      make_method(this, &webpgPluginAPI::gpgSetGroup));
+      make_method(this, &webpgPluginAPI::gpgSetGroup)
+    );
     registerMethod("gpgSetHomeDir",
-                      make_method(this, &webpgPluginAPI::gpgSetHomeDir));
+      make_method(this, &webpgPluginAPI::gpgSetHomeDir)
+    );
     registerMethod("gpgGetHomeDir",
-                      make_method(this, &webpgPluginAPI::gpgGetHomeDir));
+      make_method(this, &webpgPluginAPI::gpgGetHomeDir)
+    );
     registerMethod("gpgSetBinary",
-                      make_method(this, &webpgPluginAPI::gpgSetBinary));
+      make_method(this, &webpgPluginAPI::gpgSetBinary)
+    );
     registerMethod("gpgGetBinary",
-                      make_method(this, &webpgPluginAPI::gpgGetBinary));
+      make_method(this, &webpgPluginAPI::gpgGetBinary)
+    );
     registerMethod("gpgSetGPGConf",
-                      make_method(this, &webpgPluginAPI::gpgSetGPGConf));
+      make_method(this, &webpgPluginAPI::gpgSetGPGConf)
+    );
     registerMethod("gpgGetGPGConf",
-                      make_method(this, &webpgPluginAPI::gpgGetGPGConf));
+      make_method(this, &webpgPluginAPI::gpgGetGPGConf));
     registerMethod("gpgEncrypt",
-                      make_method(this, &webpgPluginAPI::gpgEncrypt));
+      make_method(this, &webpgPluginAPI::gpgEncrypt)
+    );
     registerMethod("gpgSymmetricEncrypt",
-                      make_method(this, &webpgPluginAPI::gpgSymmetricEncrypt));
+      make_method(this, &webpgPluginAPI::gpgSymmetricEncrypt)
+    );
     registerMethod("gpgDecrypt",
-                      make_method(this, &webpgPluginAPI::gpgDecrypt));
+      make_method(this, &webpgPluginAPI::gpgDecrypt)
+    );
     registerMethod("gpgVerify",
-                      make_method(this, &webpgPluginAPI::gpgVerify));
+      make_method(this, &webpgPluginAPI::gpgVerify)
+    );
     registerMethod("gpgSignText",
-                      make_method(this, &webpgPluginAPI::gpgSignText));
+      make_method(this, &webpgPluginAPI::gpgSignText)
+    );
     registerMethod("gpgSignUID",
-                      make_method(this, &webpgPluginAPI::gpgSignUID));
+      make_method(this, &webpgPluginAPI::gpgSignUID)
+    );
     registerMethod("gpgDeleteUIDSign",
-                      make_method(this, &webpgPluginAPI::gpgDeleteUIDSign));
+      make_method(this, &webpgPluginAPI::gpgDeleteUIDSign)
+    );
     registerMethod("gpgEnableKey",
-                      make_method(this, &webpgPluginAPI::gpgEnableKey));
+      make_method(this, &webpgPluginAPI::gpgEnableKey)
+    );
     registerMethod("gpgDisableKey",
-                      make_method(this, &webpgPluginAPI::gpgDisableKey));
+      make_method(this, &webpgPluginAPI::gpgDisableKey)
+    );
     registerMethod("gpgGenKey",
-                      make_method(this, &webpgPluginAPI::gpgGenKey));
+      make_method(this, &webpgPluginAPI::gpgGenKey)
+    );
     registerMethod("gpgGenSubKey",
-                      make_method(this, &webpgPluginAPI::gpgGenSubKey));
+      make_method(this, &webpgPluginAPI::gpgGenSubKey)
+    );
     registerMethod("gpgImportKey",
-                      make_method(this, &webpgPluginAPI::gpgImportKey));
+      make_method(this, &webpgPluginAPI::gpgImportKey)
+    );
     registerMethod("gpgImportExternalKey",
-                      make_method(this, &webpgPluginAPI::gpgImportExternalKey));
+      make_method(this, &webpgPluginAPI::gpgImportExternalKey)
+    );
     registerMethod("gpgDeletePublicKey",
-                      make_method(this, &webpgPluginAPI::gpgDeletePublicKey));
+      make_method(this, &webpgPluginAPI::gpgDeletePublicKey)
+    );
     registerMethod("gpgDeletePrivateKey",
-                      make_method(this, &webpgPluginAPI::gpgDeletePrivateKey));
+      make_method(this, &webpgPluginAPI::gpgDeletePrivateKey)
+    );
     registerMethod("gpgDeletePrivateSubKey",
-                      make_method(this, &webpgPluginAPI::gpgDeletePrivateSubKey));
+      make_method(this, &webpgPluginAPI::gpgDeletePrivateSubKey)
+    );
     registerMethod("gpgSetKeyTrust",
-                      make_method(this, &webpgPluginAPI::gpgSetKeyTrust));
+      make_method(this, &webpgPluginAPI::gpgSetKeyTrust)
+    );
     registerMethod("gpgAddUID",
-                      make_method(this, &webpgPluginAPI::gpgAddUID));
+      make_method(this, &webpgPluginAPI::gpgAddUID)
+    );
     registerMethod("gpgDeleteUID",
-                      make_method(this, &webpgPluginAPI::gpgDeleteUID));
+      make_method(this, &webpgPluginAPI::gpgDeleteUID)
+    );
     registerMethod("gpgSetPrimaryUID",
-                      make_method(this, &webpgPluginAPI::gpgSetPrimaryUID));
+      make_method(this, &webpgPluginAPI::gpgSetPrimaryUID)
+    );
     registerMethod("gpgSetSubkeyExpire",
-                      make_method(this, &webpgPluginAPI::gpgSetSubkeyExpire));
+      make_method(this, &webpgPluginAPI::gpgSetSubkeyExpire)
+    );
     registerMethod("gpgSetPubkeyExpire",
-                      make_method(this, &webpgPluginAPI::gpgSetPubkeyExpire));
+      make_method(this, &webpgPluginAPI::gpgSetPubkeyExpire)
+    );
     registerMethod("gpgExportPublicKey",
-                      make_method(this, &webpgPluginAPI::gpgExportPublicKey));
+      make_method(this, &webpgPluginAPI::gpgExportPublicKey)
+    );
     registerMethod("gpgPublishPublicKey",
-                      make_method(this, &webpgPluginAPI::gpgPublishPublicKey));
+      make_method(this, &webpgPluginAPI::gpgPublishPublicKey)
+    );
     registerMethod("gpgRevokeKey",
-                      make_method(this, &webpgPluginAPI::gpgRevokeKey));
+      make_method(this, &webpgPluginAPI::gpgRevokeKey));
     registerMethod("gpgRevokeUID",
-                      make_method(this, &webpgPluginAPI::gpgRevokeUID));
+      make_method(this, &webpgPluginAPI::gpgRevokeUID)
+    );
     registerMethod("gpgRevokeSignature",
-                      make_method(this, &webpgPluginAPI::gpgRevokeSignature));
+      make_method(this, &webpgPluginAPI::gpgRevokeSignature)
+    );
     registerMethod("gpgChangePassphrase",
-                      make_method(this, &webpgPluginAPI::gpgChangePassphrase));
+      make_method(this, &webpgPluginAPI::gpgChangePassphrase)
+    );
     registerMethod("gpgShowPhoto",
-                      make_method(this, &webpgPluginAPI::gpgShowPhoto));
+      make_method(this, &webpgPluginAPI::gpgShowPhoto));
     registerMethod("gpgAddPhoto",
-                      make_method(this, &webpgPluginAPI::gpgAddPhoto));
+      make_method(this, &webpgPluginAPI::gpgAddPhoto)
+    );
     registerMethod("gpgGetPhotoInfo",
-                      make_method(this, &webpgPluginAPI::gpgGetPhotoInfo));
+      make_method(this, &webpgPluginAPI::gpgGetPhotoInfo)
+    );
 
     registerMethod("setTempGPGOption",
-                      make_method(this, &webpgPluginAPI::setTempGPGOption));
+      make_method(this, &webpgPluginAPI::setTempGPGOption)
+    );
     registerMethod("restoreGPGConfig",
-                      make_method(this, &webpgPluginAPI::restoreGPGConfig));
+      make_method(this, &webpgPluginAPI::restoreGPGConfig)
+    );
     registerMethod("getTemporaryPath",
-                      make_method(this, &webpgPluginAPI::getTemporaryPath));
+      make_method(this, &webpgPluginAPI::getTemporaryPath)
+    );
 
     registerMethod("sendMessage",
-                      make_method(this, &webpgPluginAPI::sendMessage));
+      make_method(this, &webpgPluginAPI::sendMessage)
+    );
+
+    registerMethod("setStringMode",
+      make_method(this, &webpgPluginAPI::setStringMode)
+    );
 
 //  gpgAuth related methods
 #ifdef WITH_GPGAUTH
 //    registerMethod("getDomainKey",
-//                      make_method(this, &webpg::getNamedKey));
+//      make_method(this, &webpg::getNamedKey));
 //    registerMethod("verifyDomainKey",
-//                      make_method(this, &webpg::verifyDomainKey));
+//      make_method(this, &webpg::verifyDomainKey));
 #endif
 
     registerEvent("onkeygenprogress");
     registerEvent("onkeygencomplete");
+    registerEvent("onstatusprogress");
   }
 
   // Read-only properties
   registerProperty("version",
-                   make_property(this,
-                      &webpgPluginAPI::get_version));
+  make_property(this,
+    &webpgPluginAPI::get_version)
+  );
 
   registerProperty("webpg_status",
-                  make_property(this,
-                      &webpgPluginAPI::get_webpg_status));
+    make_property(this,
+        &webpgPluginAPI::get_webpg_status)
+  );
 
   registerProperty("openpgp_detected",
-                   make_property(this,
-                      &webpgPluginAPI::openpgp_detected));
+    make_property(this,
+      &webpgPluginAPI::openpgp_detected)
+  );
 
   registerProperty("gpgconf_detected",
-                   make_property(this,
-                      &webpgPluginAPI::gpgconf_detected));
+    make_property(this,
+      &webpgPluginAPI::gpgconf_detected)
+  );
 
   m_webpgAPI = boost::make_shared<webpg>();
 
@@ -260,38 +314,75 @@ void webpgPluginAPI::init()
   webpgPluginAPI::webpg_status_map = response;
 };
 
+void webpgPluginAPI::getKeyListThreadCaller(
+    const std::string& name,
+    bool secret_only,
+    bool fast,
+    webpgPluginAPI* api
+) {
+    api->m_webpgAPI->getKeyListWorker(
+      name,
+      secret_only,
+      fast,
+      api,
+      &webpgPluginAPI::keylist_progress_cb
+    );
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 /// @fn FB::variant getPublicKeyList()
 ///
 /// @brief  Calls m_webpgAPI->getKeyList() without specifying a search
-///         string, and the secret_only paramter as "0", which returns only
-///         Public Keys from the keyring. 
+///         string, and the secret_only paramter as false, which returns only
+///         Public Keys from the keyring.
 ///////////////////////////////////////////////////////////////////////////////
 /*
     This method executes webpg->getKeyList with an empty string and
-        secret_only=0 which returns all Public Keys in the keyring.
+        secret_only=false which returns all Public Keys in the keyring.
 */
-FB::variant webpgPluginAPI::getPublicKeyList()
-{
-  // Retrieve the public keylist
-  Json::Value json_value = m_webpgAPI->getKeyList("", 0);
+FB::variant webpgPluginAPI::getPublicKeyList(
+    boost::optional<bool> fast=false,
+    boost::optional<bool> async=false
+) {
+  Json::Value json_value;
+
+  if (async == true) {
+    boost::thread keylist_thread(
+      boost::bind(
+        &webpgPluginAPI::getKeyListThreadCaller,
+        "",
+        false,
+        *fast,
+        this
+      )
+    );
+    json_value["status"] = "queued";
+  } else {
+    // Retrieve the public keylist
+    json_value = m_webpgAPI->getPublicKeyList(fast);
+  }
 
   // Retrieve a reference to the DOM Window
   FB::DOM::WindowPtr window = m_host->getDOMWindow();
 
-  // Check if the DOM Window has an in-built JSON Parser
-  if (window && window->getJSObject()->HasProperty("JSON")) {
-    // Create a writer that will convert the object to a string
-    Json::FastWriter writer;
+  if (!STRINGMODE) {
+    // Check if the DOM Window has an in-built JSON Parser
+    if (window && window->getJSObject()->HasProperty("JSON")) {
+      // Create a writer that will convert the object to a string
+      Json::FastWriter writer;
 
-    // Create a reference to the browswer JSON object
-    FB::JSObjectPtr obj = window->getProperty<FB::JSObjectPtr>("JSON");
+      // Create a reference to the browswer JSON object
+      FB::JSObjectPtr obj = window->getProperty<FB::JSObjectPtr>("JSON");
 
-    return obj->Invoke("parse", FB::variant_list_of(writer.write(json_value)));
+      return obj->Invoke("parse", FB::variant_list_of(writer.write(json_value)));
+    } else {
+      FB::variant keylist = FB::jsonValueToVariant(json_value);
+      // No browser JSON parser detected, falling back to return of FB::variant
+      return keylist;
+    }
   } else {
-    FB::variant keylist = FB::jsonValueToVariant(json_value);
-    // No browser JSON parser detected, falling back to return of FB::variant
-    return keylist;
+    Json::FastWriter writer;
+    return writer.write(json_value);
   }
 }
 
@@ -299,34 +390,58 @@ FB::variant webpgPluginAPI::getPublicKeyList()
 /// @fn FB::variant getPrivateKeyList()
 ///
 /// @brief  Calls m_webpgAPI->getKeyList() without specifying a search
-///         string, and the secret_only paramter as "0", which returns only
-///         Public Keys from the keyring. 
+///         string, and the secret_only paramter as true, which returns only
+///         Private Keys from the keyring.
 ///////////////////////////////////////////////////////////////////////////////
 /*
     This method executes webpg->getKeyList with an empty string and
-        secret_only=0 which returns all Public Keys in the keyring.
+        secret_only=true which returns all Public Keys in the keyring.
 */
-FB::variant webpgPluginAPI::getPrivateKeyList()
-{
-  // Retrieve the public keylist
-  Json::Value json_value = m_webpgAPI->getKeyList("", 1);
+FB::variant webpgPluginAPI::getPrivateKeyList(
+    boost::optional<bool>fast=false,
+    boost::optional<bool> async=false
+) {
+  Json::Value json_value;
+
+  if (*async == true) {
+    boost::thread keylist_thread(
+      boost::bind(
+        &webpgPluginAPI::getKeyListThreadCaller,
+        "",
+        true,
+        *fast,
+        this
+      )
+    );
+    json_value["status"] = "queued";
+  } else {
+    // Retrieve the public keylist
+    json_value = m_webpgAPI->getPrivateKeyList(fast);
+  }
 
   // Retrieve a reference to the DOM Window
   FB::DOM::WindowPtr window = m_host->getDOMWindow();
 
-  // Check if the DOM Window has an in-built JSON Parser
-  if (window && window->getJSObject()->HasProperty("JSON")) {
-    // Create a writer that will convert the object to a string
-    Json::FastWriter writer;
+  if (!STRINGMODE) {
+    // Check if the DOM Window has an in-built JSON Parser
+    if (window && window->getJSObject()->HasProperty("JSON")) {
+      // Create a writer that will convert the object to a string
+      Json::FastWriter writer;
 
-    // Create a reference to the browswer JSON object
-    FB::JSObjectPtr obj = window->getProperty<FB::JSObjectPtr>("JSON");
+      // Create a reference to the browswer JSON object
+      FB::JSObjectPtr obj = window->getProperty<FB::JSObjectPtr>("JSON");
 
-    return obj->Invoke("parse", FB::variant_list_of(writer.write(json_value)));
+      return obj->Invoke("parse", FB::variant_list_of(
+        writer.write(json_value))
+      );
+    } else {
+      FB::variant keylist = FB::jsonValueToVariant(json_value);
+      // No browser JSON parser detected, falling back to return of FB::variant
+      return keylist;
+    }
   } else {
-    FB::variant keylist = FB::jsonValueToVariant(json_value);
-    // No browser JSON parser detected, falling back to return of FB::variant
-    return keylist;
+    Json::FastWriter writer;
+    return writer.write(json_value);
   }
 }
 
@@ -334,17 +449,35 @@ FB::variant webpgPluginAPI::getPrivateKeyList()
 /// @fn FB::variant webpgPluginAPI::getNamedKey(const std::string& name)
 ///
 /// @brief  Calls m_webpgAPI->getNamedKey() with a search string and the
-///         secret_only paramter as "0", which returns only Public Keys from
-///         the keyring. 
+///         secret_only paramter as false, which returns only Public Keys from
+///         the keyring.
 ///////////////////////////////////////////////////////////////////////////////
 /*
     This method just calls m_webpgAPI->getKeyList with a name/email
         as the parameter
 */
-FB::variant webpgPluginAPI::getNamedKey(const std::string& name)
-{
-  // Retrieve the public keylist
-  Json::Value json_value = m_webpgAPI->getKeyList(name, 0);
+FB::variant webpgPluginAPI::getNamedKey(
+    const std::string& name,
+    boost::optional<bool> fast=false,
+    boost::optional<bool> async=false
+) {
+  Json::Value json_value;
+
+  if (*async == true) {
+    boost::thread keylist_thread(
+      boost::bind(
+        &webpgPluginAPI::getKeyListThreadCaller,
+        name,
+        false,
+        *fast,
+        this
+      )
+    );
+    json_value["status"] = "queued";
+  } else {
+    // Retrieve the public keylist
+    json_value = m_webpgAPI->getNamedKey(name, false);
+  }
 
   // Retrieve a reference to the DOM Window
   FB::DOM::WindowPtr window = m_host->getDOMWindow();
@@ -368,9 +501,9 @@ FB::variant webpgPluginAPI::getNamedKey(const std::string& name)
 ///////////////////////////////////////////////////////////////////////////////
 /// @fn FB::variant getExternalKey(const std::string& name)
 ///
-/// @brief  Calls m_webpgAPI->getKeyList() after setting the context to 
+/// @brief  Calls m_webpgAPI->getKeyList() after setting the context to
 ///         external mode with a search string and the secret_only paramter as
-///         "0", which returns only Public Keys
+///         false, which returns only Public Keys
 ///////////////////////////////////////////////////////////////////////////////
 /*
     This method just calls m_webpgAPI->getKeyList with a name/email
@@ -401,20 +534,24 @@ FB::variant webpgPluginAPI::getExternalKey(const std::string& name)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-/// @fn FB::variant gpgSetPreference(const std::string& preference,
-///                                  const std::string& pref_value)
+/// @fn FB::variant gpgSetPreference(
+///     const std::string& preference,
+///     const std::string& pref_value)
 ///
 /// @brief  Attempts to set the specified gpgconf preference with the value
 ///         of pref_value.
 ///
 /// @param  preference  The preference to set.
-/// @param  pref_value  The value to assign to the specified preference. 
+/// @param  pref_value  The value to assign to the specified preference.
 ///////////////////////////////////////////////////////////////////////////////
-FB::variant webpgPluginAPI::gpgSetPreference(const std::string& preference,
-                                             const std::string& pref_value)
-{
-  Json::Value json_value = m_webpgAPI->gpgSetPreference(preference,
-                                                        pref_value);
+FB::variant webpgPluginAPI::gpgSetPreference(
+    const std::string& preference,
+    const std::string& pref_value="blank"
+) {
+  Json::Value json_value = m_webpgAPI->gpgSetPreference(
+    preference,
+    pref_value
+  );
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -425,7 +562,7 @@ FB::variant webpgPluginAPI::gpgSetPreference(const std::string& preference,
 ///         of pref_value.
 ///
 /// @param  preference  The preference to set.
-/// @param  pref_value  The value to assign to the specified preference. 
+/// @param  pref_value  The value to assign to the specified preference.
 ///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgGetPreference(const std::string& preference)
 {
@@ -434,18 +571,20 @@ FB::variant webpgPluginAPI::gpgGetPreference(const std::string& preference)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-/// @fn FB::variant gpgSetGroup(const std::string& group,
-///                             const std::string& group_value)
+/// @fn FB::variant gpgSetGroup(
+///     const std::string& group,
+///     const std::string& group_value)
 ///
-/// @brief  Attempts to define or clear the specified group preference with the value
-///         of group_value.
+/// @brief  Attempts to define or clear the specified group preference with
+///         the value of group_value.
 ///
 /// @param  group  The group to set.
-/// @param  group_value  The value to assign to the specified group. 
+/// @param  group_value  The value to assign to the specified group.
 ///////////////////////////////////////////////////////////////////////////////
-FB::variant webpgPluginAPI::gpgSetGroup(const std::string& group,
-                                        const std::string& group_value)
-{
+FB::variant webpgPluginAPI::gpgSetGroup(
+    const std::string& group,
+    const std::string& group_value=""
+) {
   Json::Value json_value = m_webpgAPI->gpgSetGroup(group, group_value);
   return FB::jsonValueToVariant(json_value);
 }
@@ -453,7 +592,7 @@ FB::variant webpgPluginAPI::gpgSetGroup(const std::string& group,
 ///////////////////////////////////////////////////////////////////////////////
 /// @fn FB::variant gpgSetHomeDir(const std::string& gnupg_path)
 ///
-/// @brief  Sets the GNUPGHOME static variable to the path specified in 
+/// @brief  Sets the GNUPGHOME static variable to the path specified in
 ///         gnupg_path. This should be called prior to initializing the
 ///         gpgme context.
 ///////////////////////////////////////////////////////////////////////////////
@@ -472,7 +611,7 @@ FB::variant webpgPluginAPI::gpgGetHomeDir()
 ///////////////////////////////////////////////////////////////////////////////
 /// @fn FB::variant gpgSetBinary(const std::string& gnupg_exec)
 ///
-/// @brief  Sets the GNUPGBIN static variable to the path specified in 
+/// @brief  Sets the GNUPGBIN static variable to the path specified in
 ///         gnupg_exec. This should be called prior to initializing the
 ///         gpgme context.
 ///////////////////////////////////////////////////////////////////////////////
@@ -491,7 +630,7 @@ FB::variant webpgPluginAPI::gpgGetBinary()
 ///////////////////////////////////////////////////////////////////////////////
 /// @fn FB::variant gpgSetGPGConf(const std::string& gpgconf_exec)
 ///
-/// @brief  Sets the GPGCONF static variable to the path specified in 
+/// @brief  Sets the GPGCONF static variable to the path specified in
 ///         gpgconf_exec.
 ///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgSetGPGConf(const std::string& gpgconf_exec)
@@ -507,39 +646,43 @@ FB::variant webpgPluginAPI::gpgGetGPGConf()
 }
 
 FB::variant webpgPluginAPI::gpgEncrypt(
-                           const std::string& data,
-                           const FB::VariantList& enc_to_keyids,
-                           const boost::optional<bool>& sign,
-                           const boost::optional<FB::VariantList>& opt_signers)
-{
+    const std::string& data,
+    const FB::VariantList& enc_to_keyids,
+    const boost::optional<bool>& sign,
+    const boost::optional<FB::VariantList>& opt_signers
+) {
   Json::Value json_value = m_webpgAPI->gpgEncrypt(
-                                            data,
-                                            variantToJsonValue(enc_to_keyids),
-                                            sign,
-                                            variantToJsonValue(opt_signers)
-                                       );
+    data,
+    variantToJsonValue(enc_to_keyids),
+    sign,
+    variantToJsonValue(opt_signers)
+  );
   return FB::jsonValueToVariant(json_value);
 }
 
-FB::variant webpgPluginAPI::gpgSymmetricEncrypt(const std::string& data,
-                                       const boost::optional<bool>& sign,
-                                       const boost::optional<FB::VariantList>&
-                                        opt_signers)
-{
+FB::variant webpgPluginAPI::gpgSymmetricEncrypt(
+    const std::string& data,
+    const boost::optional<bool>& sign,
+    const boost::optional<FB::VariantList>& opt_signers
+) {
   Json::Value json_value = m_webpgAPI->gpgSymmetricEncrypt(
-                                          data,
-                                          sign,
-                                          FB::variantToJsonValue(opt_signers));
+    data,
+    sign,
+    FB::variantToJsonValue(opt_signers)
+  );
   return FB::jsonValueToVariant(json_value);
 }
 
-FB::variant webpgPluginAPI::gpgDecryptVerify(const std::string& data,
-                                             const std::string& plaintext,
-                                             int use_agent)
-{
-  Json::Value json_value = m_webpgAPI->gpgDecryptVerify(data,
-                                                        plaintext,
-                                                        use_agent);
+FB::variant webpgPluginAPI::gpgDecryptVerify(
+    const std::string& data,
+    const std::string& plaintext,
+    int use_agent
+) {
+  Json::Value json_value = m_webpgAPI->gpgDecryptVerify(
+    data,
+    plaintext,
+    use_agent
+  );
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -558,38 +701,46 @@ FB::variant webpgPluginAPI::gpgDecrypt(const std::string& data)
 }
 
 FB::variant webpgPluginAPI::gpgVerify(
-                              const std::string& data,
-                              const boost::optional<std::string>& plaintext)
-{
+    const std::string& data,
+    const boost::optional<std::string>& plaintext
+) {
   Json::Value json_value = m_webpgAPI->gpgVerify(data, plaintext);
   return FB::jsonValueToVariant(json_value);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-/// @fn FB::variant gpgSignText(const std::string& plain_text,
-///                             FB::VariantList& signers,
-///                             int sign_mode)
+/// @fn FB::variant gpgSignText(
+///     const std::string& plain_text,
+///     FB::VariantList& signers,
+///     int sign_mode)
 ///
 /// @brief  Signs the text specified in plain_text with the key ids specified
 ///         in signers, with the signature mode specified in sign_mode.
 ///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgSignText(
-                    const std::string& plain_text,
-                    const FB::VariantList& signers,
-                    const boost::optional<int>& opt_sign_mode)
-{
+    const std::string& plain_text,
+    const FB::VariantList& signers,
+    const boost::optional<int>& opt_sign_mode
+) {
   Json::Value json_value = m_webpgAPI->gpgSignText(
-                                              plain_text,
-                                              FB::variantToJsonValue(signers),
-                                              opt_sign_mode);
+    plain_text,
+    FB::variantToJsonValue(signers),
+    opt_sign_mode
+  );
   return FB::jsonValueToVariant(json_value);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-/// @fn FB::variant webpgPluginAPI::gpgSignUID(const std::string& keyid, long sign_uid, const std::string& with_keyid, long local_only, long trust_sign, long trust_level)
+/// @fn FB::variant webpgPluginAPI::gpgSignUID(
+///     const std::string& keyid,
+///     long sign_uid,
+///     const std::string& with_keyid,
+///     long local_only,
+///     long trust_sign,
+///     long trust_level)
 ///
 /// @brief  Signs the UID index of the specified keyid using the signing key
-///         with_keyid. 
+///         with_keyid.
 ///
 /// @param  keyid    The ID of the key with the desired UID to sign.
 /// @param  sign_uid    The 0 based index of the UID.
@@ -599,23 +750,25 @@ FB::variant webpgPluginAPI::gpgSignText(
 /// @param  trust_level The level of trust to assign.
 ///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgSignUID(
-                            const std::string& keyid,
-                            long uid,
-                            const std::string& with_keyid,
-                            long local_only,
-                            long trust_sign,
-                            long trust_level,
-                            const boost::optional<std::string>& notation_name,
-                            const boost::optional<std::string>& notation_value)
-{
-  Json::Value json_value = m_webpgAPI->gpgSignUID(keyid,
-                                                  uid,
-                                                  with_keyid,
-                                                  local_only,
-                                                  trust_sign,
-                                                  trust_level,
-                                                  notation_name,
-                                                  notation_value);
+    const std::string& keyid,
+    long uid,
+    const std::string& with_keyid,
+    long local_only,
+    long trust_sign,
+    long trust_level,
+    const boost::optional<std::string>& notation_name=NULL,
+    const boost::optional<std::string>& notation_value=NULL
+) {
+  Json::Value json_value = m_webpgAPI->gpgSignUID(
+    keyid,
+    uid,
+    with_keyid,
+    local_only,
+    trust_sign,
+    trust_level,
+    notation_name,
+    notation_value
+  );
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -628,20 +781,23 @@ FB::variant webpgPluginAPI::gpgSignUID(
 /// @param  uid    The index of the UID containing the signature to delete.
 /// @param  signature   The signature index of the signature to delete.
 ///////////////////////////////////////////////////////////////////////////////
-FB::variant webpgPluginAPI::gpgDeleteUIDSign(const std::string& keyid,
-                                             long sign_uid,
-                                             long signature)
-{
-  Json::Value json_value = m_webpgAPI->gpgDeleteUIDSign(keyid,
-                                                        sign_uid,
-                                                        signature);
+FB::variant webpgPluginAPI::gpgDeleteUIDSign(
+    const std::string& keyid,
+    long sign_uid,
+    long signature
+) {
+  Json::Value json_value = m_webpgAPI->gpgDeleteUIDSign(
+    keyid,
+    sign_uid,
+    signature
+  );
   return FB::jsonValueToVariant(json_value);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 /// @fn FB::variant webpgPluginAPI::gpgEnableKey(const std::string& keyid)
 ///
-/// @brief  Sets the key specified with keyid as enabled in gpupg. 
+/// @brief  Sets the key specified with keyid as enabled in gpupg.
 ///
 /// @param  keyid    The ID of the key to enable.
 ///////////////////////////////////////////////////////////////////////////////
@@ -654,7 +810,7 @@ FB::variant webpgPluginAPI::gpgEnableKey(const std::string& keyid)
 ///////////////////////////////////////////////////////////////////////////////
 /// @fn FB::variant webpgPluginAPI::gpgDisableKey(const std::string& keyid)
 ///
-/// @brief  Sets the key specified with keyid as disabled in gpupg. 
+/// @brief  Sets the key specified with keyid as disabled in gpupg.
 ///
 /// @param  keyid   The ID of the key to disable.
 ///////////////////////////////////////////////////////////////////////////////
@@ -687,16 +843,17 @@ FB::variant webpgPluginAPI::gpgDisableKey(const std::string& keyid)
 /// @param  expire_date The expiration date to assign to the generated key.
 /// @param  passphrase  The passphrase to assign the to the key.
 ///////////////////////////////////////////////////////////////////////////////
-std::string webpgPluginAPI::gpgGenKey(const std::string& key_type,
-                                      const std::string& key_length,
-                                      const std::string& subkey_type,
-                                      const std::string& subkey_length,
-                                      const std::string& name_real,
-                                      const std::string& name_comment,
-                                      const std::string& name_email,
-                                      const std::string& expire_date,
-                                      const std::string& passphrase)
-{
+std::string webpgPluginAPI::gpgGenKey(
+    const std::string& key_type,
+    const std::string& key_length,
+    const std::string& subkey_type,
+    const std::string& subkey_length,
+    const std::string& name_real,
+    const std::string& name_comment,
+    const std::string& name_email,
+    const std::string& expire_date,
+    const std::string& passphrase
+) {
 
   genKeyParams params;
 
@@ -727,7 +884,7 @@ std::string webpgPluginAPI::gpgGenKey(const std::string& key_type,
 ///                              const std::string& subkey_expire,
 ///                              bool sign_flag,
 ///                              bool enc_flag,
-///                              bool auth_flag) 
+///                              bool auth_flag)
 ///
 /// @brief  Queues a threaded gpg gensubkey operation.
 ///
@@ -739,14 +896,15 @@ std::string webpgPluginAPI::gpgGenKey(const std::string& key_type,
 /// @param  enc_flag    Set the encrypt capabilities flag.
 /// @param  auth_flag  Set the auth capabilities flag.
 ///////////////////////////////////////////////////////////////////////////////
-std::string webpgPluginAPI::gpgGenSubKey(const std::string& keyid,
-                                         const std::string& subkey_type,
-                                         const std::string& subkey_length,
-                                         const std::string& subkey_expire,
-                                         bool sign_flag,
-                                         bool enc_flag,
-                                         bool auth_flag)
-{
+std::string webpgPluginAPI::gpgGenSubKey(
+    const std::string& keyid,
+    const std::string& subkey_type,
+    const std::string& subkey_length,
+    const std::string& subkey_expire,
+    bool sign_flag,
+    bool enc_flag,
+    bool auth_flag
+) {
 
   genSubKeyParams params;
 
@@ -769,7 +927,7 @@ std::string webpgPluginAPI::gpgGenSubKey(const std::string& keyid,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-/// @fn void progress_cb(void *self,
+/// @fn void keygen_progress_cb(void *self,
 ///                      const char *what,
 ///                      int type,
 ///                      int current,
@@ -785,12 +943,13 @@ std::string webpgPluginAPI::gpgGenSubKey(const std::string& keyid,
 /// @param  current ?
 /// @param  total   ?
 ///////////////////////////////////////////////////////////////////////////////
-void webpgPluginAPI::progress_cb(void *self,
-                                 const char *what,
-                                 int type,
-                                 int current,
-                                 int total)
-{
+void webpgPluginAPI::keygen_progress_cb(
+    void *self,
+    const char *what,
+    int type,
+    int current,
+    int total
+) {
   if (!strcmp (what, "primegen") && !current && !total
     && (type == '.' || type == '+' || type == '!'
     || type == '^' || type == '<' || type == '>')) {
@@ -803,6 +962,13 @@ void webpgPluginAPI::progress_cb(void *self,
   }
 }
 
+void webpgPluginAPI::keylist_progress_cb(void *self, const std::string& msg_value) {
+  if (msg_value.length() > 0) {
+    webpgPluginAPI* API = (webpgPluginAPI*) self;
+    API->FireEvent("onstatusprogress", FB::variant_list_of(msg_value));
+  }
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 /// @fn void threaded_gpgGenKey(genKeyParams params)
 ///
@@ -812,7 +978,7 @@ void webpgPluginAPI::progress_cb(void *self,
 ///////////////////////////////////////////////////////////////////////////////
 void webpgPluginAPI::threaded_gpgGenKey(genKeyParams params)
 {
-  m_webpgAPI->gpgGenKeyWorker(params, this, &webpgPluginAPI::progress_cb);
+  m_webpgAPI->gpgGenKeyWorker(params, this, &webpgPluginAPI::keygen_progress_cb);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -824,7 +990,7 @@ void webpgPluginAPI::threaded_gpgGenKey(genKeyParams params)
 ///////////////////////////////////////////////////////////////////////////////
 void webpgPluginAPI::threaded_gpgGenSubKey(genSubKeyParams params)
 {
-  m_webpgAPI->gpgGenSubKeyWorker(params, this, &webpgPluginAPI::progress_cb);
+  m_webpgAPI->gpgGenSubKeyWorker(params, this, &webpgPluginAPI::keygen_progress_cb);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -888,9 +1054,10 @@ FB::variant webpgPluginAPI::gpgDeletePrivateKey(const std::string& keyid)
 /// @param  keyid   The ID of the key to delete the subkey from.
 /// @param  key_idx The index of the subkey to delete.
 ///////////////////////////////////////////////////////////////////////////////
-FB::variant webpgPluginAPI::gpgDeletePrivateSubKey(const std::string& keyid,
-                                                   int key_idx)
-{
+FB::variant webpgPluginAPI::gpgDeletePrivateSubKey(
+    const std::string& keyid,
+    int key_idx
+) {
   Json::Value json_value = m_webpgAPI->gpgDeletePrivateSubKey(keyid, key_idx);
   return FB::jsonValueToVariant(json_value);
 }
@@ -904,9 +1071,10 @@ FB::variant webpgPluginAPI::gpgDeletePrivateSubKey(const std::string& keyid,
 /// @param  keyid   The ID of the key to assign the trust level on.
 /// @param  trust_level The level of trust to assign.
 ///////////////////////////////////////////////////////////////////////////////
-FB::variant webpgPluginAPI::gpgSetKeyTrust(const std::string& keyid,
-                                           long trust_level)
-{
+FB::variant webpgPluginAPI::gpgSetKeyTrust(
+    const std::string& keyid,
+    long trust_level
+) {
   Json::Value json_value = m_webpgAPI->gpgSetKeyTrust(keyid, trust_level);
   return FB::jsonValueToVariant(json_value);
 }
@@ -924,15 +1092,18 @@ FB::variant webpgPluginAPI::gpgSetKeyTrust(const std::string& keyid,
 /// @param  email   The email address to assign to the new UID.
 /// @param  comment The comment to assign to the new UID.
 ///////////////////////////////////////////////////////////////////////////////
-FB::variant webpgPluginAPI::gpgAddUID(const std::string& keyid,
-                                      const std::string& name,
-                                      const std::string& email,
-                                      const std::string& comment)
-{
-  Json::Value json_value = m_webpgAPI->gpgAddUID(keyid,
-                                                 name,
-                                                 email,
-                                                 comment);
+FB::variant webpgPluginAPI::gpgAddUID(
+    const std::string& keyid,
+    const std::string& name,
+    const std::string& email,
+    const std::string& comment
+) {
+  Json::Value json_value = m_webpgAPI->gpgAddUID(
+    keyid,
+    name,
+    email,
+    comment
+  );
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -944,9 +1115,10 @@ FB::variant webpgPluginAPI::gpgAddUID(const std::string& keyid,
 /// @param  keyid   The ID of the key to delete to the specified UID from.
 /// @param  uid_idx The index of the UID to delete from the key.
 ///////////////////////////////////////////////////////////////////////////////
-FB::variant webpgPluginAPI::gpgDeleteUID(const std::string& keyid,
-                                         long uid_idx)
-{
+FB::variant webpgPluginAPI::gpgDeleteUID(
+    const std::string& keyid,
+    long uid_idx
+) {
   Json::Value json_value = m_webpgAPI->gpgDeleteUID(keyid, uid_idx);
   return FB::jsonValueToVariant(json_value);
 }
@@ -959,9 +1131,10 @@ FB::variant webpgPluginAPI::gpgDeleteUID(const std::string& keyid,
 /// @param  keyid   The ID of the key with the UID to make primary.
 /// @param  uid_idx The index of the UID to make primary on the key.
 ///////////////////////////////////////////////////////////////////////////////
-FB::variant webpgPluginAPI::gpgSetPrimaryUID(const std::string& keyid,
-                                             long uid_idx)
-{
+FB::variant webpgPluginAPI::gpgSetPrimaryUID(
+    const std::string& keyid,
+    long uid_idx
+) {
   Json::Value json_value = m_webpgAPI->gpgSetPrimaryUID(keyid, uid_idx);
   return FB::jsonValueToVariant(json_value);
 }
@@ -974,9 +1147,10 @@ FB::variant webpgPluginAPI::gpgSetPrimaryUID(const std::string& keyid,
 /// @param  keyid   The ID of the key to set the expiration on.
 /// @param  expire  The expiration to assign to the key.
 ///////////////////////////////////////////////////////////////////////////////
-FB::variant webpgPluginAPI::gpgSetPubkeyExpire(const std::string& keyid,
-                                               long expire)
-{
+FB::variant webpgPluginAPI::gpgSetPubkeyExpire(
+    const std::string& keyid,
+    long expire
+) {
   Json::Value json_value = m_webpgAPI->gpgSetPubkeyExpire(keyid, expire);
   return FB::jsonValueToVariant(json_value);
 }
@@ -993,13 +1167,16 @@ FB::variant webpgPluginAPI::gpgSetPubkeyExpire(const std::string& keyid,
 /// @param  key_idx The index of the subkey to set the expiration on.
 /// @param  expire  The expiration to assign to the key.
 ///////////////////////////////////////////////////////////////////////////////
-FB::variant webpgPluginAPI::gpgSetSubkeyExpire(const std::string& keyid,
-                                               long key_idx,
-                                               long expire)
-{
-  Json::Value json_value = m_webpgAPI->gpgSetSubkeyExpire(keyid,
-                                                          key_idx,
-                                                          expire);
+FB::variant webpgPluginAPI::gpgSetSubkeyExpire(
+    const std::string& keyid,
+    long key_idx,
+    long expire
+) {
+  Json::Value json_value = m_webpgAPI->gpgSetSubkeyExpire(
+    keyid,
+    key_idx,
+    expire
+  );
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -1039,14 +1216,17 @@ FB::variant webpgPluginAPI::gpgPublishPublicKey(const std::string& keyid)
 /// @param  reason  The gnupg reason for the revocation.
 /// @param  desc    The text description for the revocation.
 ///////////////////////////////////////////////////////////////////////////////
-FB::variant webpgPluginAPI::gpgRevokeKey(const std::string& keyid,
-                                         int key_idx, int reason,
-                                         const std::string &desc)
-{
-  Json::Value json_value = m_webpgAPI->gpgRevokeKey(keyid,
-                                                    key_idx,
-                                                    reason,
-                                                    desc);
+FB::variant webpgPluginAPI::gpgRevokeKey(
+    const std::string& keyid,
+    int key_idx, int reason,
+    const std::string &desc
+) {
+  Json::Value json_value = m_webpgAPI->gpgRevokeKey(
+    keyid,
+    key_idx,
+    reason,
+    desc
+  );
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -1063,14 +1243,17 @@ FB::variant webpgPluginAPI::gpgRevokeKey(const std::string& keyid,
 /// @param  reason  The gnupg reason for the revocation.
 /// @param  desc    The text description for the revocation.
 ///////////////////////////////////////////////////////////////////////////////
-FB::variant webpgPluginAPI::gpgRevokeUID(const std::string& keyid,
-                                         int uid_idx, int reason,
-                                         const std::string &desc)
-{
-  Json::Value json_value = m_webpgAPI->gpgRevokeUID(keyid,
-                                                    uid_idx,
-                                                    reason,
-                                                    desc);
+FB::variant webpgPluginAPI::gpgRevokeUID(
+    const std::string& keyid,
+    int uid_idx, int reason,
+    const std::string &desc
+) {
+  Json::Value json_value = m_webpgAPI->gpgRevokeUID(
+    keyid,
+    uid_idx,
+    reason,
+    desc
+  );
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -1090,17 +1273,20 @@ FB::variant webpgPluginAPI::gpgRevokeUID(const std::string& keyid,
 /// @param  reason  The gnupg reason for the revocation.
 /// @param  desc    The text description for the revocation.
 ///////////////////////////////////////////////////////////////////////////////
-FB::variant webpgPluginAPI::gpgRevokeSignature(const std::string& keyid,
-                                               int uid_idx,
-                                               int sig_idx,
-                                               int reason,
-                                               const std::string &desc)
-{
-  Json::Value json_value = m_webpgAPI->gpgRevokeSignature(keyid,
-                                                          uid_idx,
-                                                          sig_idx,
-                                                          reason,
-                                                          desc);
+FB::variant webpgPluginAPI::gpgRevokeSignature(
+    const std::string& keyid,
+    int uid_idx,
+    int sig_idx,
+    int reason,
+    const std::string &desc
+) {
+  Json::Value json_value = m_webpgAPI->gpgRevokeSignature(
+    keyid,
+    uid_idx,
+    sig_idx,
+    reason,
+    desc
+  );
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -1122,13 +1308,16 @@ void webpgPluginAPI::gpgShowPhoto(const std::string& keyid)
     m_webpgAPI->gpgShowPhoto(keyid);
 }
 
-FB::variant webpgPluginAPI::gpgAddPhoto(const std::string& keyid,
-                                        const std::string& photo_name,
-                                        const std::string& photo_data)
-{
-  Json::Value json_value = m_webpgAPI->gpgAddPhoto(keyid,
-                                                   photo_name,
-                                                   photo_data);
+FB::variant webpgPluginAPI::gpgAddPhoto(
+    const std::string& keyid,
+    const std::string& photo_name,
+    const std::string& photo_data
+) {
+  Json::Value json_value = m_webpgAPI->gpgAddPhoto(
+    keyid,
+    photo_name,
+    photo_data
+  );
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -1145,11 +1334,14 @@ FB::variant webpgPluginAPI::gpgGetPhotoInfo(const std::string& keyid)
 /// @brief  Creates a backup of the gpg.conf file and writes the options to
 ///         gpg.conf; This should be called prior to initializing the context.
 ///////////////////////////////////////////////////////////////////////////////
-FB::variant webpgPluginAPI::setTempGPGOption(const std::string& option,
-                                             const std::string& value)
-{
-  Json::Value json_value = m_webpgAPI->setTempGPGOption(option,
-                                                        value);
+FB::variant webpgPluginAPI::setTempGPGOption(
+    const std::string& option,
+    const std::string& value=NULL
+) {
+  Json::Value json_value = m_webpgAPI->setTempGPGOption(
+    option,
+    value
+  );
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -1217,13 +1409,23 @@ webpgPtr webpgPluginAPI::createWebPG()
   return boost::make_shared<webpg>();
 }
 
-MultipartMixed webpgPluginAPI::createMessage(
-                                    const FB::VariantMap& recipients_m,
-                                    const FB::VariantList& signers,
-                                    int messageType, // Signed, Encrypted
-                                    const std::string& subject,
-                                    const std::string& msgBody)
+///////////////////////////////////////////////////////////////////////////////
+/// @fn FB::variant setStringMode(const bool& value)
+///
+/// @brief  Sets the return of JSON data as a JSON string (not parsed)
+///////////////////////////////////////////////////////////////////////////////
+void webpgPluginAPI::setStringMode(const bool& value)
 {
+  STRINGMODE = value;
+}
+
+MultipartMixed webpgPluginAPI::createMessage(
+    const FB::VariantMap& recipients_m,
+    const FB::VariantList& signers,
+    int messageType, // Signed, Encrypted
+    const std::string& subject,
+    const std::string& msgBody
+) {
   // define the MultipartMixed message envelope
   MultipartMixed message;
   Json::Value crypto_result;
@@ -1231,16 +1433,26 @@ MultipartMixed webpgPluginAPI::createMessage(
   std::string boundary = "webpg-";
 
   // Parse the supplied recipient list
-  std::string recip_from = VariantValue(recipients_m, "from").convert_cast<std::string>();
-  FB::VariantList to_list = VariantValue(recipients_m, "to").convert_cast<FB::VariantList>();
-  FB::VariantList cc_list = VariantValue(recipients_m, "cc").convert_cast<FB::VariantList>();
-  FB::VariantList bcc_list = VariantValue(recipients_m, "bcc").convert_cast<FB::VariantList>();
-  FB::VariantList recip_keys = VariantValue(recipients_m, "keys").convert_cast<FB::VariantList>();
+  std::string recip_from = VariantValue(recipients_m, "from")
+    .convert_cast<std::string>();
+  FB::VariantList to_list = VariantValue(recipients_m, "to")
+    .convert_cast<FB::VariantList>();
+  FB::VariantList cc_list = VariantValue(recipients_m, "cc")
+    .convert_cast<FB::VariantList>();
+  FB::VariantList bcc_list = VariantValue(recipients_m, "bcc")
+    .convert_cast<FB::VariantList>();
+  FB::VariantList recip_keys = VariantValue(recipients_m, "keys")
+    .convert_cast<FB::VariantList>();
 
   // Add the timestamp to the envelope
   time_t timestamp = time(NULL);
   char timestamptext[32];
-  if (strftime(timestamptext, sizeof(timestamptext), "%a, %d %b %Y %H:%M:%S +0000", gmtime(&timestamp))) {
+  if (strftime(
+      timestamptext,
+      sizeof(timestamptext),
+      "%a, %d %b %Y %H:%M:%S +0000",
+      gmtime(&timestamp)
+     )) {
     Field dateField;
     dateField.name("Date");
     dateField.value(timestamptext);
@@ -1263,27 +1475,32 @@ MultipartMixed webpgPluginAPI::createMessage(
   int nrecip;
   for (nrecip = 0; nrecip < to_list.size(); nrecip++) {
     lrecip = to_list[nrecip];
-    message.header().to().push_back((char *) lrecip.convert_cast<std::string>().c_str());
+    message.header().to().push_back((char *) lrecip
+      .convert_cast<std::string>().c_str());
   }
   for (nrecip = 0; nrecip < cc_list.size(); nrecip++) {
     lrecip = cc_list[nrecip];
-    message.header().cc().push_back((char *) lrecip.convert_cast<std::string>().c_str());
+    message.header().cc().push_back((char *) lrecip
+      .convert_cast<std::string>().c_str());
   }
   for (nrecip = 0; nrecip < bcc_list.size(); nrecip++) {
     lrecip = bcc_list[nrecip];
-    message.header().bcc().push_back((char *) lrecip.convert_cast<std::string>().c_str());
+    message.header().bcc().push_back((char *) lrecip
+      .convert_cast<std::string>().c_str());
   }
   message.header().subject(subject.c_str());
-  
+
   Attachment* att;
-  
+
   if (messageType == WEBPG_PGPMIME_SIGNED) {
     // Create the pgp-signature ContentType and protocol
     message.header().contentType("multipart/signed");
     message.header().contentType().param("micalg", "pgp-sha1");
-    message.header().contentType().param("protocol", "application/pgp-signature");
+    message.header().contentType().param("protocol",
+      "application/pgp-signature");
 
-    message.body().preamble("This is an OpenPGP/MIME signed message (RFC 4880 and 3156)");
+    message.body()
+      .preamble("This is an OpenPGP/MIME signed message (RFC 4880 and 3156)");
 
     // create the plain object.
     MimeEntity* plain;
@@ -1307,7 +1524,7 @@ MultipartMixed webpgPluginAPI::createMessage(
     msgBodyWH += plain->header().contentTransferEncoding().str();
     msgBodyWH += "\r\n\r\n";
     msgBodyWH += plain->body();
-    
+
     crypto_result = variantToJsonValue(webpgPluginAPI::gpgSignText(msgBodyWH,
                                                 signers,
                                                 1));
@@ -1324,20 +1541,25 @@ MultipartMixed webpgPluginAPI::createMessage(
     att->body().assign(pgpData.asString());
 
   } else {
-    
+
     crypto_result = variantToJsonValue(webpgPluginAPI::gpgEncrypt(msgBody,
                                                recip_keys,
                                                true,
                                                signers));
-                                           
+
     pgpData = crypto_result["data"];
     std::cout << pgpData << std::endl;
     // Assign the pgp-encrypted ContentType and protocol
     message.header().contentType("multipart/encrypted");
-    message.header().contentType().param("protocol", "application/pgp-encrytped");
+    message
+      .header()
+        .contentType()
+          .param("protocol", "application/pgp-encrytped");
 
     // Set the body preamble
-    message.body().preamble("This is an OpenPGP/MIME encrypted message (RFC 4880 and 3156)");
+    message
+      .body()
+        .preamble("This is an OpenPGP/MIME encrypted message (RFC 4880 and 3156)");
     att = new Attachment("encrypted.asc",
                     ContentType("application","octet-stream")
     );
@@ -1384,16 +1606,26 @@ static size_t readcb(void *ptr, size_t size, size_t nmemb, void *stream) {
 
 FB::variant webpgPluginAPI::sendMessage(const FB::VariantMap& msgInfo) {
   int nrecip;
-  std::string username = VariantValue(msgInfo, "username").convert_cast<std::string>();
-  std::string bearer = VariantValue(msgInfo, "bearer").convert_cast<std::string>();
-  FB::VariantMap recipients_m = VariantValue(msgInfo, "recipients").convert_cast<FB::VariantMap>();
-  std::string recip_from = VariantValue(recipients_m, "from").convert_cast<std::string>();
-  FB::VariantList to_list = VariantValue(recipients_m, "to").convert_cast<FB::VariantList>();
-  FB::VariantList cc_list = VariantValue(recipients_m, "cc").convert_cast<FB::VariantList>();
-  FB::VariantList bcc_list = VariantValue(recipients_m, "bcc").convert_cast<FB::VariantList>();
-  FB::VariantList signers = VariantValue(msgInfo, "signers").convert_cast<FB::VariantList>();
-  std::string subject = VariantValue(msgInfo, "subject").convert_cast<std::string>();
-  std::string msgBody = VariantValue(msgInfo, "message").convert_cast<std::string>();
+  std::string username = VariantValue(msgInfo, "username")
+    .convert_cast<std::string>();
+  std::string bearer = VariantValue(msgInfo, "bearer")
+    .convert_cast<std::string>();
+  FB::VariantMap recipients_m = VariantValue(msgInfo, "recipients")
+    .convert_cast<FB::VariantMap>();
+  std::string recip_from = VariantValue(recipients_m, "from")
+    .convert_cast<std::string>();
+  FB::VariantList to_list = VariantValue(recipients_m, "to")
+    .convert_cast<FB::VariantList>();
+  FB::VariantList cc_list = VariantValue(recipients_m, "cc")
+    .convert_cast<FB::VariantList>();
+  FB::VariantList bcc_list = VariantValue(recipients_m, "bcc")
+    .convert_cast<FB::VariantList>();
+  FB::VariantList signers = VariantValue(msgInfo, "signers")
+    .convert_cast<FB::VariantList>();
+  std::string subject = VariantValue(msgInfo, "subject")
+    .convert_cast<std::string>();
+  std::string msgBody = VariantValue(msgInfo, "message")
+    .convert_cast<std::string>();
 
   // convert the newlines in msgBody
   boost::replace_all(msgBody, "\n", "\r\n");
@@ -1401,7 +1633,13 @@ FB::variant webpgPluginAPI::sendMessage(const FB::VariantMap& msgInfo) {
   int msgType = VariantValue(msgInfo, "messagetype").convert_cast<int>();
 //  bool formatInline = VariantValue(msgInfo, "formatinline").convert_cast<bool>();
 
-  MultipartMixed me = createMessage(recipients_m, signers, msgType, subject, msgBody);
+  MultipartMixed me =
+    createMessage(recipients_m,
+    signers,
+    msgType,
+    subject,
+    msgBody
+  );
   std::stringstream buffer;
   buffer << me << endl;
   std::string buffern = buffer.str();
@@ -1415,16 +1653,16 @@ FB::variant webpgPluginAPI::sendMessage(const FB::VariantMap& msgInfo) {
   CURL *curl;
   CURLcode res;
   struct curl_slist *recipients = NULL;
-     
+
   curl = curl_easy_init();
   if (curl) {
     curl_easy_setopt(curl, CURLOPT_URL, "smtp://smtp.gmail.com:587");
-  
+
     curl_easy_setopt(curl, CURLOPT_USE_SSL, (long)CURLUSESSL_ALL);
     curl_easy_setopt(curl, CURLOPT_USERNAME, (char *) username.c_str());
     curl_easy_setopt(curl, CURLOPT_XOAUTH2_BEARER, (char *) bearer.c_str());
-   
-    /* value for envelope reverse-path */ 
+
+    /* value for envelope reverse-path */
     curl_easy_setopt(curl, CURLOPT_MAIL_FROM, (char *) recip_from.c_str());
     /* Add two recipients, in this particular case they correspond to the
      * To: and Cc: addressees in the header, but they could be any kind of
@@ -1433,31 +1671,32 @@ FB::variant webpgPluginAPI::sendMessage(const FB::VariantMap& msgInfo) {
     FB::variant lrecip;
     for (nrecip = 0; nrecip < to_list.size(); nrecip++) {
       lrecip = to_list[nrecip];
-      recipients = curl_slist_append(recipients, (char *) lrecip.convert_cast<std::string>().c_str());
+      recipients = curl_slist_append(recipients, (char *) lrecip
+        .convert_cast<std::string>().c_str());
     }
 //      recipients = curl_slist_append(recipients, CC);
     curl_easy_setopt(curl, CURLOPT_MAIL_RCPT, recipients);
-     
+
     res = curl_easy_setopt(curl, CURLOPT_READFUNCTION, readcb);
     if(res != CURLE_OK)
       return curl_easy_strerror(res);
     res = curl_easy_setopt(curl, CURLOPT_READDATA, &rarg);
     if(res != CURLE_OK)
       return curl_easy_strerror(res);
-     
+
     /* Since the traffic will be encrypted, it is very useful to turn on debug
      * information within libcurl to see what is happening during the transfer.
-     */ 
+     */
     curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
-  
-    /* send the message (including headers) */ 
+
+    /* send the message (including headers) */
     res = curl_easy_perform(curl);
 
-    /* Check for errors */ 
+    /* Check for errors */
     if(res != CURLE_OK)
       return curl_easy_strerror(res);
 
-    /* free the list of recipients and clean up */ 
+    /* free the list of recipients and clean up */
     curl_slist_free_all(recipients);
     curl_easy_cleanup(curl);
   }

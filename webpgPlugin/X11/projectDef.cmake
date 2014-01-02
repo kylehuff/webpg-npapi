@@ -41,7 +41,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 )
 
 add_library(gpgme STATIC IMPORTED)
-set_property(TARGET gpgme PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/libwebpg/libs/libgpgme/${ARCH_DIR}/libgpgme.a)
+set_property(TARGET gpgme PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/libwebpg/libs/libgpgme/${ARCH_DIR}/libgpgme-pthread.a)
 add_library(gpg-error STATIC IMPORTED)
 set_property(TARGET gpg-error PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/libwebpg/libs/libgpg-error/${ARCH_DIR}/libgpg-error.a)
 add_library(assuan STATIC IMPORTED)

@@ -1,10 +1,10 @@
-/**********************************************************\ 
+/**********************************************************\
 Original Author: Kyle L. Huff (kylehuff)
 
 Created:    Jan 14, 2011
 License:    GNU General Public License, version 2
             http://www.gnu.org/licenses/gpl-2.0.html
-            
+
 Copyright 2011 Kyle L. Huff, CURETHEITCH development team
 \**********************************************************/
 /*! \mainpage webpg-npapi Documentation
@@ -19,7 +19,7 @@ Copyright 2011 Kyle L. Huff, CURETHEITCH development team
  * \section install_sec Compiling
  *
  * \subsection step1 Step 1: Obtain the source
- *  
+ *
  * git clone http://github.com/kylehuff/webpg-npapi.git\n
  * \n
  *
@@ -101,6 +101,7 @@ typedef struct {
   int body_pos;
 } readarg_t;
 
+static bool STRINGMODE = false;
 const int kMaxCharPerLine = 76;
 const char* const kEOL = "\r\n";
 
@@ -129,7 +130,7 @@ class webpgPluginAPI : public FB::JSAPIAuto
     webpgPluginAPI(const webpgPluginPtr& plugin,
         const FB::BrowserHostPtr& host);
     virtual ~webpgPluginAPI();
-    
+
     webpgPluginPtr getPlugin();
 
     webpgPtr createWebPG();
@@ -147,33 +148,45 @@ class webpgPluginAPI : public FB::JSAPIAuto
     /// @fn FB::variant webpgPluginAPI::getPublicKeyList()
     ///
     /// @brief  Calls webpgPluginAPI::getKeyList() without specifying a search
-    ///         string, and the secret_only paramter as "0", which returns only
-    ///         Public Keys from the keyring. 
+    ///         string, and the secret_only paramter as false, which returns only
+    ///         Public Keys from the keyring.
     ///////////////////////////////////////////////////////////////////////////
-    FB::variant getPublicKeyList();
+    FB::variant getPublicKeyList(
+      boost::optional<bool> fast,
+      boost::optional<bool> async
+    );
+
+    void threaded_getPublicKeyList();
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant getPrivateKeyList()
     ///
     /// @brief  Calls webpgPluginAPI::getKeyList() without specifying a search
-    ///         string, and the secret_only paramter as "1", which returns only
-    ///         Private Keys from the keyring. 
+    ///         string, and the secret_only paramter as true, which returns only
+    ///         Private Keys from the keyring.
     ///////////////////////////////////////////////////////////////////////////
-    FB::variant getPrivateKeyList();
+    FB::variant getPrivateKeyList(
+        boost::optional<bool> fast,
+        boost::optional<bool> async
+    );
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant getNamedKey(const std::string& name)
     ///
     /// @brief  Calls webpgPluginAPI::getKeyList() with a search string and the
-    ///         secret_only paramter as "0", which returns only Public Keys from
-    ///         the keyring. 
+    ///         secret_only paramter as false, which returns only Public Keys from
+    ///         the keyring.
     ///////////////////////////////////////////////////////////////////////////
-    FB::variant getNamedKey(const std::string& name);
+    FB::variant getNamedKey(
+        const std::string& name,
+        boost::optional<bool> fast,
+        boost::optional<bool> async
+    );
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant getExternalKey(const std::string& name)
     ///
-    /// @brief  Calls webpgPluginAPI::getKeyList() after setting the context to 
+    /// @brief  Calls webpgPluginAPI::getKeyList() after setting the context to
     ///         external mode with a search string and the secret_only paramter as
     ///         "0", which returns only Public Keys
     ///////////////////////////////////////////////////////////////////////////
@@ -187,10 +200,11 @@ class webpgPluginAPI : public FB::JSAPIAuto
     ///         of pref_value.
     ///
     /// @param  preference  The preference to set.
-    /// @param  pref_value  The value to assign to the specified preference. 
+    /// @param  pref_value  The value to assign to the specified preference.
     ///////////////////////////////////////////////////////////////////////////
-    FB::variant gpgSetPreference(const std::string& preference,
-                                 const std::string& pref_value="blank"
+    FB::variant gpgSetPreference(
+        const std::string& preference,
+        const std::string& pref_value
     );
 
     ///////////////////////////////////////////////////////////////////////////
@@ -212,16 +226,17 @@ class webpgPluginAPI : public FB::JSAPIAuto
     ///         with the value of <group_value>.
     ///
     /// @param  group  The group to set.
-    /// @param  group_value  The value to assign to the specified group. 
+    /// @param  group_value  The value to assign to the specified group.
     ///////////////////////////////////////////////////////////////////////////
-    FB::variant gpgSetGroup(const std::string& group,
-                            const std::string& group_value=""
+    FB::variant gpgSetGroup(
+        const std::string& group,
+        const std::string& group_value
     );
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgSetHomeDir(const std::string& gnupg_path)
     ///
-    /// @brief  Sets the GNUPGHOME static variable to the path specified in 
+    /// @brief  Sets the GNUPGHOME static variable to the path specified in
     ///         gnupg_path. This should be called prior to initializing the
     ///         gpgme context.
     ///////////////////////////////////////////////////////////////////////////
@@ -231,7 +246,7 @@ class webpgPluginAPI : public FB::JSAPIAuto
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgSetBinary(const std::string& gnupg_exec)
     ///
-    /// @brief  Sets the GNUPGBIN static variable to the path specified in 
+    /// @brief  Sets the GNUPGBIN static variable to the path specified in
     ///         gnupg_exec. This should be called prior to initializing the
     ///         gpgme context.
     ///////////////////////////////////////////////////////////////////////////
@@ -241,7 +256,7 @@ class webpgPluginAPI : public FB::JSAPIAuto
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgSetGPGConf(const std::string& gpgconf_exec)
     ///
-    /// @brief  Sets the GPGCONF static variable to the path specified in 
+    /// @brief  Sets the GPGCONF static variable to the path specified in
     ///         gpgconf_exec.
     ///////////////////////////////////////////////////////////////////////////
     FB::variant gpgSetGPGConf(const std::string& gpgconf_exec);
@@ -257,10 +272,11 @@ class webpgPluginAPI : public FB::JSAPIAuto
     /// @param  enc_to_keyids   A VariantList of key ids to encrypt to (recpients).
     /// @param  sign    The data should be also be signed.
     ///////////////////////////////////////////////////////////////////////////
-    FB::variant gpgEncrypt(const std::string& data,
-                           const FB::VariantList& enc_to_keyids,
-                           const boost::optional<bool>& sign,
-                           const boost::optional<FB::VariantList>& opt_signers
+    FB::variant gpgEncrypt(
+        const std::string& data,
+        const FB::VariantList& enc_to_keyids,
+        const boost::optional<bool>& sign,
+        const boost::optional<FB::VariantList>& opt_signers
     );
 
     ///////////////////////////////////////////////////////////////////////////
@@ -275,9 +291,9 @@ class webpgPluginAPI : public FB::JSAPIAuto
     ///                 see https://bugs.g10code.com/gnupg/issue1440
     ///////////////////////////////////////////////////////////////////////////
     FB::variant gpgSymmetricEncrypt(
-                          const std::string& data,  
-                          const boost::optional<bool>& sign,
-                          const boost::optional<FB::VariantList>& opt_signers
+        const std::string& data,
+        const boost::optional<bool>& sign,
+        const boost::optional<FB::VariantList>& opt_signers
     );
 
     ///////////////////////////////////////////////////////////////////////////
@@ -293,9 +309,10 @@ class webpgPluginAPI : public FB::JSAPIAuto
     /// @param  plaintext   The plaintext of a detached signature.
     /// @param  use_agent   Attempt to disable the gpg-agent.
     ///////////////////////////////////////////////////////////////////////////
-    FB::variant gpgDecryptVerify(const std::string& data,
-                                 const std::string& plaintext,
-                                 int use_agent
+    FB::variant gpgDecryptVerify(
+        const std::string& data,
+        const std::string& plaintext,
+        int use_agent
     );
 
     ///////////////////////////////////////////////////////////////////////////
@@ -308,8 +325,9 @@ class webpgPluginAPI : public FB::JSAPIAuto
     ///////////////////////////////////////////////////////////////////////////
     FB::variant gpgDecrypt(const std::string& data);
 
-    FB::variant gpgVerify(const std::string& data,
-                          const boost::optional<std::string>& plaintext
+    FB::variant gpgVerify(
+        const std::string& data,
+        const boost::optional<std::string>& plaintext
     );
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgSignText(FB::VariantList& signers, const std::string& plain_text, int sign_mode)
@@ -318,16 +336,16 @@ class webpgPluginAPI : public FB::JSAPIAuto
     ///         in signers, with the signature mode specified in sign_mode.
     ///////////////////////////////////////////////////////////////////////////
     FB::variant gpgSignText(
-                        const std::string& plain_text,
-                        const FB::VariantList& signers,
-                        const boost::optional<int>& opt_sign_mode
+      const std::string& plain_text,
+      const FB::VariantList& signers,
+      const boost::optional<int>& opt_sign_mode
     );
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgSignUID(const std::string& keyid, long sign_uid, const std::string& with_keyid, long local_only, long trust_sign, long trust_level)
     ///
     /// @brief  Signs the UID index of the specified keyid using the signing key
-    ///         with_keyid. 
+    ///         with_keyid.
     ///
     /// @param  keyid    The ID of the key with the desired UID to sign.
     /// @param  sign_uid    The 0 based index of the UID.
@@ -337,14 +355,14 @@ class webpgPluginAPI : public FB::JSAPIAuto
     /// @param  trust_level The level of trust to assign.
     ///////////////////////////////////////////////////////////////////////////
     FB::variant gpgSignUID(
-                        const std::string& keyid,
-                        long uid,
-                        const std::string& with_keyid,
-                        long local_only,
-                        long trust_sign,
-                        long trust_level,
-                        const boost::optional<std::string>& notation_name=NULL,
-                        const boost::optional<std::string>& notation_value=NULL
+      const std::string& keyid,
+      long uid,
+      const std::string& with_keyid,
+      long local_only,
+      long trust_sign,
+      long trust_level,
+      const boost::optional<std::string>& notation_name,
+      const boost::optional<std::string>& notation_value
     );
 
     ///////////////////////////////////////////////////////////////////////////
@@ -357,15 +375,15 @@ class webpgPluginAPI : public FB::JSAPIAuto
     /// @param  signature   The signature index of the signature to delete.
     ///////////////////////////////////////////////////////////////////////////
     FB::variant gpgDeleteUIDSign(
-                        const std::string& keyid,
-                        long sign_uid,
-                        long signature
+        const std::string& keyid,
+        long sign_uid,
+        long signature
     );
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgEnableKey(const std::string& keyid)
     ///
-    /// @brief  Sets the key specified with keyid as enabled in gpupg. 
+    /// @brief  Sets the key specified with keyid as enabled in gpupg.
     ///
     /// @param  keyid    The ID of the key to enable.
     ///////////////////////////////////////////////////////////////////////////
@@ -374,16 +392,16 @@ class webpgPluginAPI : public FB::JSAPIAuto
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgDisableKey(const std::string& keyid)
     ///
-    /// @brief  Sets the key specified with keyid as disabled in gpupg. 
+    /// @brief  Sets the key specified with keyid as disabled in gpupg.
     ///
     /// @param  keyid   The ID of the key to disable.
     ///////////////////////////////////////////////////////////////////////////
     FB::variant gpgDisableKey(const std::string& keyid);
 
     ///////////////////////////////////////////////////////////////////////////
-    /// @fn std::string webpgPluginAPI::gpgGenKey(const std::string& key_type, const std::string& key_length, 
-    ///        const std::string& subkey_type, const std::string& subkey_length, const std::string& name_real, 
-    ///        const std::string& name_comment, const std::string& name_email, const std::string& expire_date, 
+    /// @fn std::string webpgPluginAPI::gpgGenKey(const std::string& key_type, const std::string& key_length,
+    ///        const std::string& subkey_type, const std::string& subkey_length, const std::string& name_real,
+    ///        const std::string& name_comment, const std::string& name_email, const std::string& expire_date,
     ///        const std::string& passphrase)
     ///
     /// @brief  Queues a threaded gpg genkey operation.
@@ -399,21 +417,21 @@ class webpgPluginAPI : public FB::JSAPIAuto
     /// @param  passphrase  The passphrase to assign the to the key.
     ///////////////////////////////////////////////////////////////////////////
     std::string gpgGenKey(
-                          const std::string& key_type,
-                          const std::string& key_length,
-                          const std::string& subkey_type,
-                          const std::string& subkey_length,
-                          const std::string& name_real,
-                          const std::string& name_comment,
-                          const std::string& name_email,
-                          const std::string& expire_date,
-                          const std::string& passphrase
+        const std::string& key_type,
+        const std::string& key_length,
+        const std::string& subkey_type,
+        const std::string& subkey_length,
+        const std::string& name_real,
+        const std::string& name_comment,
+        const std::string& name_email,
+        const std::string& expire_date,
+        const std::string& passphrase
     );
 
     ///////////////////////////////////////////////////////////////////////////
-    /// @fn std::string webpgPluginAPI::gpgGenSubKey(const std::string& keyid, 
+    /// @fn std::string webpgPluginAPI::gpgGenSubKey(const std::string& keyid,
     ///         const std::string& subkey_type, const std::string& subkey_length,
-    ///         const std::string& subkey_expire, bool sign_flag, bool enc_flag, bool auth_flag) 
+    ///         const std::string& subkey_expire, bool sign_flag, bool enc_flag, bool auth_flag)
     ///
     /// @brief  Queues a threaded gpg gensubkey operation.
     ///
@@ -425,10 +443,12 @@ class webpgPluginAPI : public FB::JSAPIAuto
     /// @param  enc_flag    Set the encrypt capabilities flag.
     /// @param  auth_flag  Set the auth capabilities flag.
     ///////////////////////////////////////////////////////////////////////////
-    std::string gpgGenSubKey(const std::string& keyid, 
+    std::string gpgGenSubKey(
+        const std::string& keyid,
         const std::string& subkey_type, const std::string& subkey_length,
         const std::string& subkey_expire, bool sign_flag, bool enc_flag,
-        bool auth_flag);
+        bool auth_flag
+    );
 
     /*
         static class method which accepts the calling object as a parameter
@@ -445,8 +465,15 @@ class webpgPluginAPI : public FB::JSAPIAuto
         api->threaded_gpgGenSubKey(params);
     };
 
+    static void getKeyListThreadCaller(
+        const std::string& name,
+        bool secret_only,
+        bool fast,
+        webpgPluginAPI* api
+    );
+
     ///////////////////////////////////////////////////////////////////////////
-    /// @fn void webpgPluginAPI::progress_cb(void *self, const char *what, int type, int current, int total)
+    /// @fn void webpgPluginAPI::keygen_progress_cb(void *self, const char *what, int type, int current, int total)
     ///
     /// @brief  Called by the long-running, asymmetric gpg genkey method to display the status.
     ///
@@ -457,10 +484,12 @@ class webpgPluginAPI : public FB::JSAPIAuto
     /// @param  current ?
     /// @param  total   ?
     ///////////////////////////////////////////////////////////////////////////
-    static void progress_cb(
+    static void keygen_progress_cb(
         void *self, const char *what,
         int type, int current, int total
     );
+
+    static void keylist_progress_cb(void *self, const std::string& msg_value);
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn void webpgPluginAPI::threaded_gpgGenKey(genKeyParams params)
@@ -547,8 +576,12 @@ class webpgPluginAPI : public FB::JSAPIAuto
     /// @param  email   The email address to assign to the new UID.
     /// @param  comment The comment to assign to the new UID.
     ///////////////////////////////////////////////////////////////////////////
-    FB::variant gpgAddUID(const std::string& keyid, const std::string& name,
-        const std::string& email, const std::string& comment);
+    FB::variant gpgAddUID(
+        const std::string& keyid,
+        const std::string& name,
+        const std::string& email,
+        const std::string& comment
+    );
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgDeleteUID(const std::string& keyid, long uid_idx)
@@ -579,8 +612,11 @@ class webpgPluginAPI : public FB::JSAPIAuto
     /// @param  key_idx The index of the subkey to set the expiration on.
     /// @param  expire  The expiration to assign.
     ///////////////////////////////////////////////////////////////////////////
-    FB::variant gpgSetKeyExpire(const std::string& keyid, long key_idx,
-        long expire);
+    FB::variant gpgSetKeyExpire(
+        const std::string& keyid,
+        long key_idx,
+        long expire
+    );
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgSetPubkeyExpire(const std::string& keyid, long expire)
@@ -601,8 +637,11 @@ class webpgPluginAPI : public FB::JSAPIAuto
     /// @param  key_idx The index of the subkey to set the expiration on.
     /// @param  expire  The expiration to assign to the key.
     ///////////////////////////////////////////////////////////////////////////
-    FB::variant gpgSetSubkeyExpire(const std::string& keyid, long key_idx,
-        long expire);
+    FB::variant gpgSetSubkeyExpire(
+        const std::string& keyid,
+        long key_idx,
+        long expire
+    );
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgExportPublicKey(const std::string& keyid)
@@ -629,8 +668,12 @@ class webpgPluginAPI : public FB::JSAPIAuto
     /// @param  reason  The gnupg reason for the revocation.
     /// @param  desc    The text description for the revocation.
     ///////////////////////////////////////////////////////////////////////////
-    FB::variant gpgRevokeKey(const std::string& keyid, int key_idx, int reason,
-        const std::string &desc);
+    FB::variant gpgRevokeKey(
+        const std::string& keyid,
+        int key_idx,
+        int reason,
+        const std::string &desc
+    );
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgRevokeUID(const std::string& keyid, int uid_idx, int reason,
@@ -643,8 +686,12 @@ class webpgPluginAPI : public FB::JSAPIAuto
     /// @param  reason  The gnupg reason for the revocation.
     /// @param  desc    The text description for the revocation.
     ///////////////////////////////////////////////////////////////////////////
-    FB::variant gpgRevokeUID(const std::string& keyid, int uid_idx, int reason,
-        const std::string &desc);
+    FB::variant gpgRevokeUID(
+        const std::string& keyid,
+        int uid_idx,
+        int reason,
+        const std::string &desc
+    );
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgRevokeSignature(const std::string& keyid, int uid_idx, int sig_idx,
@@ -658,8 +705,13 @@ class webpgPluginAPI : public FB::JSAPIAuto
     /// @param  reason  The gnupg reason for the revocation.
     /// @param  desc    The text description for the revocation.
     ///////////////////////////////////////////////////////////////////////////
-    FB::variant gpgRevokeSignature(const std::string& keyid, int uid_idx,
-        int sig_idx, int reason, const std::string &desc);
+    FB::variant gpgRevokeSignature(
+        const std::string& keyid,
+        int uid_idx,
+        int sig_idx,
+        int reason,
+        const std::string &desc
+    );
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgChangePassphrase(const std::string& keyid)
@@ -673,9 +725,9 @@ class webpgPluginAPI : public FB::JSAPIAuto
     void gpgShowPhoto(const std::string& keyid);
 
     FB::variant gpgAddPhoto(
-                        const std::string& keyid,
-                        const std::string& photo_name,
-                        const std::string& photo_data
+        const std::string& keyid,
+        const std::string& photo_name,
+        const std::string& photo_data
     );
 
     FB::variant gpgGetPhotoInfo(const std::string& keyid);
@@ -686,8 +738,10 @@ class webpgPluginAPI : public FB::JSAPIAuto
     /// @brief  Creates a backup of the gpg.conf file and writes the options to
     ///         gpg.conf; This should be called prior to initializing the context.
     ///////////////////////////////////////////////////////////////////////////
-    FB::variant setTempGPGOption(const std::string& option,
-        const std::string& value=NULL);
+    FB::variant setTempGPGOption(
+        const std::string& option,
+        const std::string& value
+    );
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::restoreGPGConfig()
@@ -734,19 +788,25 @@ class webpgPluginAPI : public FB::JSAPIAuto
     /// @brief  Determines if gpgconf is available to the engine.
     ///////////////////////////////////////////////////////////////////////////
     bool gpgconf_detected();
+
+    void setStringMode(const bool& value);
+    FB_JSAPI_EVENT(prog, 1, (std::string));
   private:
     webpgPluginWeakPtr m_plugin;
     webpgPtr m_webpgAPI;
     FB::BrowserHostPtr m_host;
     mimetic::MultipartMixed createMessage(
-                            const FB::VariantMap& recipients_m,
-                            const FB::VariantList& signers,
-                            int messageType, // Signed, Encrypted
-                            const std::string& subject,
-                            const std::string& msgBody
+        const FB::VariantMap& recipients_m,
+        const FB::VariantList& signers,
+        int messageType, // Signed, Encrypted
+        const std::string& subject,
+        const std::string& msgBody
     );
     FB::variant getMsg(const FB::VariantMap& msgInfo=FB::VariantMap());
-    int IsEOL(const std::string::const_iterator& iter, const std::string& input);
+    int IsEOL(
+        const std::string::const_iterator& iter,
+        const std::string& input
+    );
 };
 
 #endif // H_webpgPluginAPI

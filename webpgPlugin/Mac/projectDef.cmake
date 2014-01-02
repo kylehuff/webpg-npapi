@@ -39,7 +39,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 )
 
 add_library(gpgme STATIC IMPORTED)
-set_property(TARGET gpgme PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/libwebpg/libs/libgpgme/${ARCH_DIR}/libgpgme.a)
+set_property(TARGET gpgme PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/libwebpg/libs/libgpgme/${ARCH_DIR}/libgpgme-pthread.a)
 add_library(gpg-error STATIC IMPORTED)
 set_property(TARGET gpg-error PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/libwebpg/libs/libgpg-error/${ARCH_DIR}/libgpg-error.a)
 add_library(assuan STATIC IMPORTED)
@@ -47,9 +47,9 @@ set_property(TARGET assuan PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR
 add_library(curl STATIC IMPORTED)
 set_property(TARGET curl PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/libwebpg/libs/libcurl/${ARCH_DIR}/libcurl.a)
 add_library(cyassl STATIC IMPORTED)
-set_property(TARGET cyassl PROPERTY IMPORTED_LOCATION /opt/local/lib/libcyassl.a)
+set_property(TARGET cyassl PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/libwebpg/libs/libcurl/${ARCH_DIR}libcyassl.a)
 add_library(zlib STATIC IMPORTED)
-set_property(TARGET zlib PROPERTY IMPORTED_LOCATION /opt/local/lib/libz.a)
+set_property(TARGET zlib PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/libwebpg/libs/libcurl/${ARCH_DIR}libz.a)
 add_library(mimetic STATIC IMPORTED)
 set_property(TARGET mimetic PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/libwebpg/libs/libmimetic/${ARCH_DIR}/libmimetic.a)
 
