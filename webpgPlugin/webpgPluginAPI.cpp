@@ -1432,8 +1432,8 @@ MultipartMixed webpgPluginAPI::createMessage(
   // define the MultipartMixed message envelope
   MultipartMixed message;
   Json::Value crypto_result;
-  Json::Value pgpData;
   std::string boundary = "webpg-";
+  bool sign = false;
 
   // Parse the supplied recipient list
   std::string recip_from = VariantValue(recipients_m, "from")
@@ -1486,11 +1486,6 @@ MultipartMixed webpgPluginAPI::createMessage(
     message.header().cc().push_back((char *) lrecip
       .convert_cast<std::string>().c_str());
   }
-  for (nrecip = 0; nrecip < bcc_list.size(); nrecip++) {
-    lrecip = bcc_list[nrecip];
-    message.header().bcc().push_back((char *) lrecip
-      .convert_cast<std::string>().c_str());
-  }
   message.header().subject(subject.c_str());
 
   Attachment* att;
@@ -1531,8 +1526,15 @@ MultipartMixed webpgPluginAPI::createMessage(
     crypto_result = variantToJsonValue(webpgPluginAPI::gpgSignText(msgBodyWH,
                                                 signers,
                                                 1));
-    pgpData = crypto_result["data"];
-//    std::cout << crypto_result << std::endl;
+
+    if (crypto_result["error"] == true) {
+        // If there was an error, change the TO address so we can detect the
+        //  error when returning the message.
+        message.header().to("webpg-mime-runtime-error@webpg.org");
+        // Set the message subject to the error string.
+        message.header().subject(crypto_result["error_string"].asCString());
+    }
+
     // Push the plain MimeEntity into the MimeMultipart message
     message.body().parts().push_back(plain);
 
@@ -1541,17 +1543,28 @@ MultipartMixed webpgPluginAPI::createMessage(
     );
     att->header().contentDescription("OpenPGP digital signature");
     att->header().contentTransferEncoding("quoted-printable");
-    att->body().assign(pgpData.asString());
+    att->body().assign(crypto_result["data"].asString());
 
   } else {
 
+    if (signers.size() > 0)
+        sign = true;
+
     crypto_result = variantToJsonValue(webpgPluginAPI::gpgEncrypt(msgBody,
                                                recip_keys,
-                                               true,
+                                               sign,
                                                signers));
 
-    pgpData = crypto_result["data"];
-    std::cout << pgpData << std::endl;
+    if (crypto_result["error"] == true) {
+        // If there was an error, change the TO address so we can detect the
+        //  error when returning the message.
+        message.header().to("webpg-mime-runtime-error@webpg.org");
+        // Set the message subject to the error string.
+        message.header().subject(crypto_result["error_string"].asCString());
+    }
+
+    std::cout << crypto_result << std::endl;
+
     // Assign the pgp-encrypted ContentType and protocol
     message.header().contentType("multipart/encrypted");
     message
@@ -1563,11 +1576,23 @@ MultipartMixed webpgPluginAPI::createMessage(
     message
       .body()
         .preamble("This is an OpenPGP/MIME encrypted message (RFC 4880 and 3156)");
+
+    // Add the PGP Mime Version information
+    MimeEntity* pgpMimeVersion = new MimeEntity();
+
+    // Create the relevent headers for the PGP Mime Version MimeEntity
+    pgpMimeVersion->header().contentType().set("application/pgp-encrypted");
+    pgpMimeVersion->header().contentDescription("PGP/MIME version identification");
+    pgpMimeVersion->body().assign("Version: 1");
+    pgpMimeVersion->body().push_back(NEWLINE);
+
+    message.body().parts().push_back(pgpMimeVersion);
+
     att = new Attachment("encrypted.asc",
                     ContentType("application","octet-stream")
     );
     att->header().contentDescription("OpenPGP encrypted message");
-    att->body().assign(pgpData.asString());
+    att->body().assign(crypto_result["data"].asString());
     att->body().push_back(NEWLINE);
   }
 
@@ -1608,7 +1633,8 @@ static size_t readcb(void *ptr, size_t size, size_t nmemb, void *stream) {
 }
 
 FB::variant webpgPluginAPI::sendMessage(const FB::VariantMap& msgInfo) {
-  int nrecip;
+  std::string host_url = VariantValue(msgInfo, "host_url")
+    .convert_cast<std::string>();
   std::string username = VariantValue(msgInfo, "username")
     .convert_cast<std::string>();
   std::string bearer = VariantValue(msgInfo, "bearer")
@@ -1630,11 +1656,19 @@ FB::variant webpgPluginAPI::sendMessage(const FB::VariantMap& msgInfo) {
   std::string msgBody = VariantValue(msgInfo, "message")
     .convert_cast<std::string>();
 
-  // convert the newlines in msgBody
-  boost::replace_all(msgBody, "\n", "\r\n");
-
   int msgType = VariantValue(msgInfo, "messagetype").convert_cast<int>();
-//  bool formatInline = VariantValue(msgInfo, "formatinline").convert_cast<bool>();
+
+  // Do some error checking
+  if (host_url.length() < 0)
+    return "Parameter \"host_url\" required. Aborting";
+  if (username.length() < 0)
+    return "Parameter \"username\" required. Aborting";
+  if (bearer.length() < 0)
+    return "Parameter \"bearer\" required. Aborting";
+  if (recip_from.length() < 0)
+    return "Parameter \"recipients\" must have \"from\" field. Aborting";
+  if (to_list.size() < 0)
+    return "Parameter \"recipients\" must have \"to\" list with at least one address. Aborting";
 
   MultipartMixed me =
     createMessage(recipients_m,
@@ -1643,6 +1677,12 @@ FB::variant webpgPluginAPI::sendMessage(const FB::VariantMap& msgInfo) {
     subject,
     msgBody
   );
+
+  // Check if the recipient of this message is the runtime error address,
+  //  which indicates that something went wrong.
+  if (me.header().to().str() == "webpg-mime-runtime-error@webpg.org")
+    return me.header().subject();
+
   std::stringstream buffer;
   buffer << me << endl;
   std::string buffern = buffer.str();
@@ -1659,25 +1699,38 @@ FB::variant webpgPluginAPI::sendMessage(const FB::VariantMap& msgInfo) {
 
   curl = curl_easy_init();
   if (curl) {
-    curl_easy_setopt(curl, CURLOPT_URL, "smtp://smtp.gmail.com:587");
+    curl_easy_setopt(curl, CURLOPT_URL, (char *) host_url.c_str());
 
-    curl_easy_setopt(curl, CURLOPT_USE_SSL, (long)CURLUSESSL_ALL);
+    curl_easy_setopt(curl, CURLOPT_USE_SSL, (long) CURLUSESSL_ALL);
+    // FIXME: Workaround for issues with cyassl:
+    //  "SSL_connect failed with error -188: ASN no signer error to confirm failure"
+    //  There has to be a better way to resolve this issue that will work for
+    //  all WebPG target platforms and configurations.
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
     curl_easy_setopt(curl, CURLOPT_USERNAME, (char *) username.c_str());
     curl_easy_setopt(curl, CURLOPT_XOAUTH2_BEARER, (char *) bearer.c_str());
 
-    /* value for envelope reverse-path */
+    // Envelope reverse-path
     curl_easy_setopt(curl, CURLOPT_MAIL_FROM, (char *) recip_from.c_str());
-    /* Add two recipients, in this particular case they correspond to the
-     * To: and Cc: addressees in the header, but they could be any kind of
-     * recipient. */
 
+    // Iterate through the provided recipients (TO, CC and BCC)
+    int nrecip;
     FB::variant lrecip;
     for (nrecip = 0; nrecip < to_list.size(); nrecip++) {
       lrecip = to_list[nrecip];
       recipients = curl_slist_append(recipients, (char *) lrecip
         .convert_cast<std::string>().c_str());
     }
-//      recipients = curl_slist_append(recipients, CC);
+    for (nrecip = 0; nrecip < cc_list.size(); nrecip++) {
+      lrecip = cc_list[nrecip];
+      recipients = curl_slist_append(recipients, (char *) lrecip
+        .convert_cast<std::string>().c_str());
+    }
+    for (nrecip = 0; nrecip < bcc_list.size(); nrecip++) {
+      lrecip = bcc_list[nrecip];
+      recipients = curl_slist_append(recipients, (char *) lrecip
+        .convert_cast<std::string>().c_str());
+    }
     curl_easy_setopt(curl, CURLOPT_MAIL_RCPT, recipients);
 
     res = curl_easy_setopt(curl, CURLOPT_READFUNCTION, readcb);
@@ -1687,19 +1740,17 @@ FB::variant webpgPluginAPI::sendMessage(const FB::VariantMap& msgInfo) {
     if(res != CURLE_OK)
       return curl_easy_strerror(res);
 
-    /* Since the traffic will be encrypted, it is very useful to turn on debug
-     * information within libcurl to see what is happening during the transfer.
-     */
-    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+    // debugging
+//    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
 
-    /* send the message (including headers) */
+    // Send the message (including headers)
     res = curl_easy_perform(curl);
 
-    /* Check for errors */
+    // Check for errors
     if(res != CURLE_OK)
       return curl_easy_strerror(res);
 
-    /* free the list of recipients and clean up */
+    // free the list of recipients and clean up
     curl_slist_free_all(recipients);
     curl_easy_cleanup(curl);
   }
