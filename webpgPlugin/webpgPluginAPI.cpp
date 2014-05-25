@@ -1637,6 +1637,7 @@ static size_t readcb(void *ptr, size_t size, size_t nmemb, void *stream) {
 }
 
 FB::variant webpgPluginAPI::sendMessage(const FB::VariantMap& msgInfo) {
+  FB::VariantMap response;
   std::string host_url = VariantValue(msgInfo, "host_url")
     .convert_cast<std::string>();
   std::string username = VariantValue(msgInfo, "username")
@@ -1663,16 +1664,32 @@ FB::variant webpgPluginAPI::sendMessage(const FB::VariantMap& msgInfo) {
   int msgType = VariantValue(msgInfo, "messagetype").convert_cast<int>();
 
   // Do some error checking
-  if (host_url.length() < 0)
-    return "Parameter \"host_url\" required. Aborting";
-  if (username.length() < 0)
-    return "Parameter \"username\" required. Aborting";
-  if (bearer.length() < 0)
-    return "Parameter \"bearer\" required. Aborting";
-  if (recip_from.length() < 0)
-    return "Parameter \"recipients\" must have \"from\" field. Aborting";
-  if (to_list.size() < 0)
-    return "Parameter \"recipients\" must have \"to\" list with at least one address. Aborting";
+  // FIXME: Redundant and lots of returns
+  if (host_url.length() < 1) {
+    response["error"] = true;
+    response["result"] = "Parameter \"host_url\" required. Aborting";
+    return response;
+  }
+  if (username.length() < 1) {
+    response["error"] = true;
+    response["result"] = "Parameter \"username\" required. Aborting";
+    return response;
+  }
+  if (bearer.length() < 1) {
+    response["error"] = true;
+    response["result"] = "Parameter \"bearer\" required. Aborting";
+    return response;
+  }
+  if (recip_from.length() < 1) {
+    response["error"] = true;
+    response["result"] = "Parameter \"recipients\" must have \"from\" field. Aborting";
+    return response;
+  }
+  if (to_list.size() < 1) {
+    response["error"] = true;
+    response["result"] = "Parameter \"recipients\" must have \"to\" list with at least one address. Aborting";
+    return response;
+  }
 
   MultipartMixed me =
     createMessage(recipients_m,
@@ -1684,8 +1701,11 @@ FB::variant webpgPluginAPI::sendMessage(const FB::VariantMap& msgInfo) {
 
   // Check if the recipient of this message is the runtime error address,
   //  which indicates that something went wrong.
-  if (me.header().to().str() == "webpg-mime-runtime-error@webpg.org")
-    return me.header().subject();
+  if (me.header().to().str() == "webpg-mime-runtime-error@webpg.org") {
+    response["error"] = true;
+    response["result"] = me.header().subject();
+    return response;
+  }
 
   std::stringstream buffer;
   buffer << me << endl;
@@ -1738,11 +1758,18 @@ FB::variant webpgPluginAPI::sendMessage(const FB::VariantMap& msgInfo) {
     curl_easy_setopt(curl, CURLOPT_MAIL_RCPT, recipients);
 
     res = curl_easy_setopt(curl, CURLOPT_READFUNCTION, readcb);
-    if(res != CURLE_OK)
-      return curl_easy_strerror(res);
+    if(res != CURLE_OK) {
+      response["error"] = true;
+      response["result"] = curl_easy_strerror(res);
+      return response;
+    }
+
     res = curl_easy_setopt(curl, CURLOPT_READDATA, &rarg);
-    if(res != CURLE_OK)
-      return curl_easy_strerror(res);
+    if(res != CURLE_OK) {
+      response["error"] = true;
+      response["result"] = curl_easy_strerror(res);
+      return response;
+    }
 
     // debugging
 //    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
@@ -1751,13 +1778,21 @@ FB::variant webpgPluginAPI::sendMessage(const FB::VariantMap& msgInfo) {
     res = curl_easy_perform(curl);
 
     // Check for errors
-    if(res != CURLE_OK)
-      return curl_easy_strerror(res);
+    if(res != CURLE_OK) {
+      response["error"] = true;
+      response["result"] = curl_easy_strerror(res);
+      return response;
+    }
 
     // free the list of recipients and clean up
     curl_slist_free_all(recipients);
     curl_easy_cleanup(curl);
+    response["error"] = false;
+    response["result"] = "message sent";
+  } else {
+    response["error"] = true;
+    response["result"] = "curl failed to initialized for unknown reasons";
   }
 
-  return buffer.str();
+  return response;
 }
