@@ -1594,6 +1594,7 @@ MultipartMixed webpgPluginAPI::createMessage(
                     ContentType("application","octet-stream")
     );
     att->header().contentDescription("OpenPGP encrypted message");
+    att->header().contentTransferEncoding("quoted-printable");
     att->header().contentDisposition("inline; filename=\"encrypted.asc\"");
     att->body().assign(crypto_result["data"].asString());
     att->body().push_back(NEWLINE);
