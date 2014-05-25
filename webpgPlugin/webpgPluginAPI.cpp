@@ -1543,6 +1543,7 @@ MultipartMixed webpgPluginAPI::createMessage(
     );
     att->header().contentDescription("OpenPGP digital signature");
     att->header().contentTransferEncoding("quoted-printable");
+    att->header().contentDisposition("inline; filename=\"signature.asc\"");
     att->body().assign(crypto_result["data"].asString());
 
   } else {
@@ -1583,6 +1584,7 @@ MultipartMixed webpgPluginAPI::createMessage(
     // Create the relevent headers for the PGP Mime Version MimeEntity
     pgpMimeVersion->header().contentType().set("application/pgp-encrypted");
     pgpMimeVersion->header().contentDescription("PGP/MIME version identification");
+    pgpMimeVersion->header().contentDisposition("inline; filename=\"version.asc\"");
     pgpMimeVersion->body().assign("Version: 1");
     pgpMimeVersion->body().push_back(NEWLINE);
 
@@ -1592,6 +1594,7 @@ MultipartMixed webpgPluginAPI::createMessage(
                     ContentType("application","octet-stream")
     );
     att->header().contentDescription("OpenPGP encrypted message");
+    att->header().contentDisposition("inline; filename=\"encrypted.asc\"");
     att->body().assign(crypto_result["data"].asString());
     att->body().push_back(NEWLINE);
   }
