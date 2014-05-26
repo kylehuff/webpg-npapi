@@ -1475,7 +1475,7 @@ MultipartMixed webpgPluginAPI::createMessage(
   // Add the FROM, TO, CC and BCC fields to the envelope
   message.header().from(recip_from.c_str());
   FB::variant lrecip;
-  int nrecip;
+  unsigned int nrecip;
   for (nrecip = 0; nrecip < to_list.size(); nrecip++) {
     lrecip = to_list[nrecip];
     message.header().to().push_back((char *) lrecip
@@ -1515,7 +1515,10 @@ MultipartMixed webpgPluginAPI::createMessage(
     plain->body().push_back(NEWLINE);
     QP::Encoder qp;
     plain->body().code(qp);
-    std::cout << plain->header().contentType().str() << std::endl;
+
+    // Push the plain MimeEntity into the MimeMultipart message
+    message.body().parts().push_back(plain);
+
     msgBodyWH = "Content-Type: ";
     msgBodyWH += plain->header().contentType().str();
     msgBodyWH += "\r\nContent-Transfer-Encoding: ";
@@ -1534,9 +1537,6 @@ MultipartMixed webpgPluginAPI::createMessage(
         // Set the message subject to the error string.
         message.header().subject(crypto_result["error_string"].asCString());
     }
-
-    // Push the plain MimeEntity into the MimeMultipart message
-    message.body().parts().push_back(plain);
 
     att = new Attachment("signature.asc",
                          ContentType("application","pgp-signature")
@@ -1563,8 +1563,6 @@ MultipartMixed webpgPluginAPI::createMessage(
         // Set the message subject to the error string.
         message.header().subject(crypto_result["error_string"].asCString());
     }
-
-    std::cout << crypto_result << std::endl;
 
     // Assign the pgp-encrypted ContentType and protocol
     message.header().contentType("multipart/encrypted");
@@ -1605,20 +1603,6 @@ MultipartMixed webpgPluginAPI::createMessage(
   boundary += buf;
   message.header().contentType().param("boundary", boundary);
 
-//  if (formatInline == true) {
-//    // Add the MIME Version message part
-//    MimeEntity* mimeVersion;
-//    mimeVersion = new MimeEntity();
-//    mimeVersion->header().contentType(message.header().contentType().param("protocol"));
-//    mimeVersion->header().contentDescription("PGP/MIME version identification");
-//    mimeVersion->body().assign("Version: ");
-//    mimeVersion->body().push_back(WEBPG_MIME_VERSION_STRING[0]);
-//    mimeVersion->body().push_back(NEWLINE);
-//    message.body().parts().push_back(mimeVersion);
-
-//    att->header().contentTransferEncoding("inline");
-//  }
-
   // Push the attachment into the MimeMultipart message
   message.body().parts().push_back(att);
 
@@ -1627,7 +1611,7 @@ MultipartMixed webpgPluginAPI::createMessage(
 
 static size_t readcb(void *ptr, size_t size, size_t nmemb, void *stream) {
   readarg_t *rarg = (readarg_t *)stream;
-  int len = rarg->body_size - rarg->body_pos;
+  unsigned int len = rarg->body_size - rarg->body_pos;
   if (len > size * nmemb)
     len = size * nmemb;
   memcpy(ptr, rarg->data + rarg->body_pos, len);
@@ -1738,7 +1722,7 @@ FB::variant webpgPluginAPI::sendMessage(const FB::VariantMap& msgInfo) {
     curl_easy_setopt(curl, CURLOPT_MAIL_FROM, (char *) recip_from.c_str());
 
     // Iterate through the provided recipients (TO, CC and BCC)
-    int nrecip;
+    unsigned int nrecip;
     FB::variant lrecip;
     for (nrecip = 0; nrecip < to_list.size(); nrecip++) {
       lrecip = to_list[nrecip];
