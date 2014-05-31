@@ -66,9 +66,6 @@ Copyright 2011 Kyle L. Huff, CURETHEITCH development team
 #include "BrowserHost.h"
 #include <boost/optional.hpp>
 #include <boost/algorithm/string.hpp>
-#include <curl.h>
-#include <mimetic/mimetic.h>
-#include <mimetic/streambufs.h>
 
 #if _MSC_VER
 #define snprintf _snprintf
@@ -88,18 +85,21 @@ FB_FORWARD_PTR(webpg);
 #ifndef H_webpgPluginAPI
 #define H_webpgPluginAPI
 
-#define WEBPG_PGPMIME_ENCRYPTED 1
-#define WEBPG_PGPMIME_SIGNED 2
-#define WEBPG_MIME_VERSION_MAJOR 1
-#define WEBPG_MIME_VERSION_MINOR 0
-#define WEBPG_MIME_VERSION_STRING "1.0"
-#define NEWLINE '\n'
+//typedef struct {
+//  FB::variant host_url;
+//  FB::variant username;
+//  FB::variant bearer;
+//  FB::VariantMap recipients;
+//  FB::VariantList signers;
+//  FB::variant subject;
+//  FB::variant message;
+//} msgParams;
 
-typedef struct {
-  char *data;
-  int body_size;
-  int body_pos;
-} readarg_t;
+//typedef struct {
+//  char *data;
+//  int body_size;
+//  int body_pos;
+//} readarg_t;
 
 static bool STRINGMODE = false;
 const int kMaxCharPerLine = 76;
@@ -113,8 +113,38 @@ inline FB::variant VariantValue(const FB::VariantMap& vmap, std::string key) {
 
   it = vmap.find(key);
 
+  if (it != vmap.end()) {
+    if (it->second.is_of_type<FB::VariantMap>())
+      value = "VariantMap";
+    else if (it->second.is_of_type<FB::VariantList>())
+      value = "VaraintList";
+    else
+      value = it->second;
+  }
+
+  return value;
+}
+
+inline FB::VariantMap VariantMapValue(const FB::VariantMap& vmap, std::string key) {
+  FB::VariantMap::const_iterator it;
+  FB::VariantMap value;
+
+  it = vmap.find(key);
+
   if (it != vmap.end())
-    value = it->second;
+    value = it->second.convert_cast<FB::VariantMap>();
+
+  return value;
+}
+
+inline FB::VariantList VariantListValue(const FB::VariantMap& vmap, std::string key) {
+  FB::VariantMap::const_iterator it;
+  FB::VariantList value;
+
+  it = vmap.find(key);
+
+  if (it != vmap.end())
+    value = it->second.convert_cast<FB::VariantList>();
 
   return value;
 }
@@ -489,7 +519,7 @@ class webpgPluginAPI : public FB::JSAPIAuto
         int type, int current, int total
     );
 
-    static void keylist_progress_cb(void *self, const std::string& msg_value);
+    static void keylist_progress_cb(void *self, const char* msg_value);
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn void webpgPluginAPI::threaded_gpgGenKey(genKeyParams params)
@@ -795,14 +825,6 @@ class webpgPluginAPI : public FB::JSAPIAuto
     webpgPluginWeakPtr m_plugin;
     webpgPtr m_webpgAPI;
     FB::BrowserHostPtr m_host;
-    mimetic::MultipartMixed createMessage(
-        const FB::VariantMap& recipients_m,
-        const FB::VariantList& signers,
-        int messageType, // Signed, Encrypted
-        const std::string& subject,
-        const std::string& msgBody
-    );
-    FB::variant getMsg(const FB::VariantMap& msgInfo=FB::VariantMap());
     int IsEOL(
         const std::string::const_iterator& iter,
         const std::string& input
