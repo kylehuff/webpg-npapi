@@ -227,12 +227,17 @@ webpgPluginAPI::webpgPluginAPI(const webpgPluginPtr& plugin,
   // Read-only properties
   registerProperty("version",
   make_property(this,
-    &webpgPluginAPI::get_version)
+    &webpgPluginAPI::version)
+  );
+
+  registerMethod("get_webpg_status",
+    make_method(this,
+        &webpgPluginAPI::get_webpg_status)
   );
 
   registerProperty("webpg_status",
     make_property(this,
-        &webpgPluginAPI::get_webpg_status)
+        &webpgPluginAPI::webpg_status)
   );
 
   registerProperty("openpgp_detected",
@@ -319,13 +324,22 @@ void webpgPluginAPI::getKeyListThreadCaller(
     bool fast,
     webpgPluginAPI* api
 ) {
-    api->m_webpgAPI->getKeyListWorker(
-      name.c_str(),
-      secret_only,
-      fast,
-      api,
-      &webpgPluginAPI::keylist_progress_cb
-    );
+    if (api->threaded_js_callback != NULL)
+      api->m_webpgAPI->getKeyListWorker(
+        name.c_str(),
+        secret_only,
+        fast,
+        api,
+        &webpgPluginAPI::javascript_cb
+      );
+    else
+      api->m_webpgAPI->getKeyListWorker(
+        name.c_str(),
+        secret_only,
+        fast,
+        api,
+        &webpgPluginAPI::keylist_progress_cb
+      );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -341,10 +355,17 @@ void webpgPluginAPI::getKeyListThreadCaller(
 */
 FB::variant webpgPluginAPI::getPublicKeyList(
     const boost::optional<bool> fast=false,
-    const boost::optional<bool> async=false
+    const boost::optional<bool> async=false,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
 ) {
   Json::Value json_value;
   bool fastListMode = (fast==true);
+
+  if (callback != NULL)
+    if (async == true)
+      threaded_js_callback = *callback;
+    else
+      js_callback = *callback;
 
   if (async == true) {
     boost::thread keylist_thread(
@@ -360,6 +381,15 @@ FB::variant webpgPluginAPI::getPublicKeyList(
   } else {
     // Retrieve the public keylist
     json_value = m_webpgAPI->getPublicKeyList(fastListMode);
+  }
+
+  if (async == false && callback != NULL) {
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
   }
 
   // Retrieve a reference to the DOM Window
@@ -399,10 +429,17 @@ FB::variant webpgPluginAPI::getPublicKeyList(
 */
 FB::variant webpgPluginAPI::getPrivateKeyList(
     const boost::optional<bool>fast=false,
-    const boost::optional<bool> async=false
+    const boost::optional<bool> async=false,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
 ) {
   Json::Value json_value;
   bool fastListMode = (fast==true);
+
+  if (callback != NULL)
+    if (async == true)
+      threaded_js_callback = *callback;
+    else
+      js_callback = *callback;
 
   if (async == true) {
     boost::thread keylist_thread(
@@ -418,6 +455,15 @@ FB::variant webpgPluginAPI::getPrivateKeyList(
   } else {
     // Retrieve the public keylist
     json_value = m_webpgAPI->getPrivateKeyList(fastListMode);
+  }
+
+  if (async == false && callback != NULL) {
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
   }
 
   // Retrieve a reference to the DOM Window
@@ -460,10 +506,17 @@ FB::variant webpgPluginAPI::getPrivateKeyList(
 FB::variant webpgPluginAPI::getNamedKey(
     const std::string& name,
     const boost::optional<bool> fast=false,
-    const boost::optional<bool> async=false
+    const boost::optional<bool> async=false,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
 ) {
   Json::Value json_value;
   bool fastListMode = (fast==true);
+
+  if (callback != NULL)
+    if (async == true)
+      threaded_js_callback = *callback;
+    else
+      js_callback = *callback;
 
   if (async == true) {
     boost::thread keylist_thread(
@@ -479,6 +532,15 @@ FB::variant webpgPluginAPI::getNamedKey(
   } else {
     // Retrieve the public keylist
     json_value = m_webpgAPI->getNamedKey(name, false);
+  }
+
+  if (async == false && callback != NULL) {
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
   }
 
   // Retrieve a reference to the DOM Window
@@ -511,10 +573,22 @@ FB::variant webpgPluginAPI::getNamedKey(
     This method just calls m_webpgAPI->getKeyList with a name/email
         as the parameter
 */
-FB::variant webpgPluginAPI::getExternalKey(const std::string& name)
-{
+FB::variant webpgPluginAPI::getExternalKey(
+    const std::string& name,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
+) {
   // Retrieve the public keylist
   Json::Value json_value = m_webpgAPI->getExternalKey(name);
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
 
   // Retrieve a reference to the DOM Window
   FB::DOM::WindowPtr window = m_host->getDOMWindow();
@@ -548,12 +622,24 @@ FB::variant webpgPluginAPI::getExternalKey(const std::string& name)
 ///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgSetPreference(
     const std::string& preference,
-    const std::string& pref_value="blank"
+    const std::string& pref_value="blank",
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
 ) {
   Json::Value json_value = m_webpgAPI->gpgSetPreference(
     preference,
     pref_value
   );
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -566,9 +652,22 @@ FB::variant webpgPluginAPI::gpgSetPreference(
 /// @param  preference  The preference to set.
 /// @param  pref_value  The value to assign to the specified preference.
 ///////////////////////////////////////////////////////////////////////////////
-FB::variant webpgPluginAPI::gpgGetPreference(const std::string& preference)
-{
+FB::variant webpgPluginAPI::gpgGetPreference(
+    const std::string& preference,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
+) {
   Json::Value json_value = m_webpgAPI->gpgGetPreference(preference);
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -585,9 +684,21 @@ FB::variant webpgPluginAPI::gpgGetPreference(const std::string& preference)
 ///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgSetGroup(
     const std::string& group,
-    const std::string& group_value=""
+    const std::string& group_value="",
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
 ) {
   Json::Value json_value = m_webpgAPI->gpgSetGroup(group, group_value);
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -598,15 +709,29 @@ FB::variant webpgPluginAPI::gpgSetGroup(
 ///         gnupg_path. This should be called prior to initializing the
 ///         gpgme context.
 ///////////////////////////////////////////////////////////////////////////////
-FB::variant webpgPluginAPI::gpgSetHomeDir(const std::string& gnupg_path)
-{
+FB::variant webpgPluginAPI::gpgSetHomeDir(
+    const std::string& gnupg_path,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
+) {
   Json::Value json_value = m_webpgAPI->gpgSetHomeDir(gnupg_path);
   return FB::jsonValueToVariant(json_value);
 }
 
-FB::variant webpgPluginAPI::gpgGetHomeDir()
-{
+FB::variant webpgPluginAPI::gpgGetHomeDir(
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
+) {
   Json::Value json_value = m_webpgAPI->gpgGetHomeDir();
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -617,15 +742,40 @@ FB::variant webpgPluginAPI::gpgGetHomeDir()
 ///         gnupg_exec. This should be called prior to initializing the
 ///         gpgme context.
 ///////////////////////////////////////////////////////////////////////////////
-FB::variant webpgPluginAPI::gpgSetBinary(const std::string& gnupg_exec)
-{
+FB::variant webpgPluginAPI::gpgSetBinary(
+    const std::string& gnupg_exec,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
+) {
   Json::Value json_value = m_webpgAPI->gpgSetBinary(gnupg_exec);
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
-FB::variant webpgPluginAPI::gpgGetBinary()
-{
+FB::variant webpgPluginAPI::gpgGetBinary(
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
+) {
   Json::Value json_value = m_webpgAPI->gpgGetBinary();
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -635,15 +785,40 @@ FB::variant webpgPluginAPI::gpgGetBinary()
 /// @brief  Sets the GPGCONF static variable to the path specified in
 ///         gpgconf_exec.
 ///////////////////////////////////////////////////////////////////////////////
-FB::variant webpgPluginAPI::gpgSetGPGConf(const std::string& gpgconf_exec)
-{
+FB::variant webpgPluginAPI::gpgSetGPGConf(
+    const std::string& gpgconf_exec,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
+) {
   Json::Value json_value = m_webpgAPI->gpgSetGPGConf(gpgconf_exec);
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
-FB::variant webpgPluginAPI::gpgGetGPGConf()
-{
+FB::variant webpgPluginAPI::gpgGetGPGConf(
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
+) {
   Json::Value json_value = m_webpgAPI->gpgGetGPGConf();
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -651,7 +826,8 @@ FB::variant webpgPluginAPI::gpgEncrypt(
     const std::string& data,
     const FB::VariantList& enc_to_keyids,
     const boost::optional<bool>& sign,
-    const boost::optional<FB::VariantList>& opt_signers
+    const boost::optional<FB::VariantList>& opt_signers,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
 ) {
   Json::Value json_value = m_webpgAPI->gpgEncrypt(
     data,
@@ -659,32 +835,67 @@ FB::variant webpgPluginAPI::gpgEncrypt(
     sign,
     variantToJsonValue(opt_signers)
   );
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
 FB::variant webpgPluginAPI::gpgSymmetricEncrypt(
     const std::string& data,
     const boost::optional<bool>& sign,
-    const boost::optional<FB::VariantList>& opt_signers
+    const boost::optional<FB::VariantList>& opt_signers,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
 ) {
   Json::Value json_value = m_webpgAPI->gpgSymmetricEncrypt(
     data,
     sign,
     FB::variantToJsonValue(opt_signers)
   );
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
 FB::variant webpgPluginAPI::gpgDecryptVerify(
     const std::string& data,
     const std::string& plaintext,
-    int use_agent
+    int use_agent,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
 ) {
   Json::Value json_value = m_webpgAPI->gpgDecryptVerify(
     data,
     plaintext,
     use_agent
   );
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -696,17 +907,42 @@ FB::variant webpgPluginAPI::gpgDecryptVerify(
 ///
 /// @param  data    The data to decyrpt.
 ///////////////////////////////////////////////////////////////////////////////
-FB::variant webpgPluginAPI::gpgDecrypt(const std::string& data)
-{
+FB::variant webpgPluginAPI::gpgDecrypt(
+    const std::string& data,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
+) {
   Json::Value json_value = m_webpgAPI->gpgDecrypt(data);
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
 FB::variant webpgPluginAPI::gpgVerify(
     const std::string& data,
-    const boost::optional<std::string>& plaintext
+    const boost::optional<std::string>& plaintext,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
 ) {
   Json::Value json_value = m_webpgAPI->gpgVerify(data, plaintext);
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -722,13 +958,25 @@ FB::variant webpgPluginAPI::gpgVerify(
 FB::variant webpgPluginAPI::gpgSignText(
     const std::string& plain_text,
     const FB::VariantList& signers,
-    const boost::optional<int>& opt_sign_mode
+    const boost::optional<int>& opt_sign_mode,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
 ) {
   Json::Value json_value = m_webpgAPI->gpgSignText(
     plain_text,
     FB::variantToJsonValue(signers),
     opt_sign_mode
   );
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -759,7 +1007,8 @@ FB::variant webpgPluginAPI::gpgSignUID(
     long trust_sign,
     long trust_level,
     const boost::optional<std::string>& notation_name=NULL,
-    const boost::optional<std::string>& notation_value=NULL
+    const boost::optional<std::string>& notation_value=NULL,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
 ) {
   Json::Value json_value = m_webpgAPI->gpgSignUID(
     keyid,
@@ -771,6 +1020,17 @@ FB::variant webpgPluginAPI::gpgSignUID(
     notation_name,
     notation_value
   );
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -786,13 +1046,25 @@ FB::variant webpgPluginAPI::gpgSignUID(
 FB::variant webpgPluginAPI::gpgDeleteUIDSign(
     const std::string& keyid,
     long sign_uid,
-    long signature
+    long signature,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
 ) {
   Json::Value json_value = m_webpgAPI->gpgDeleteUIDSign(
     keyid,
     sign_uid,
     signature
   );
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -803,9 +1075,22 @@ FB::variant webpgPluginAPI::gpgDeleteUIDSign(
 ///
 /// @param  keyid    The ID of the key to enable.
 ///////////////////////////////////////////////////////////////////////////////
-FB::variant webpgPluginAPI::gpgEnableKey(const std::string& keyid)
-{
+FB::variant webpgPluginAPI::gpgEnableKey(
+    const std::string& keyid,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
+) {
   Json::Value json_value = m_webpgAPI->gpgEnableKey(keyid);
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -816,9 +1101,22 @@ FB::variant webpgPluginAPI::gpgEnableKey(const std::string& keyid)
 ///
 /// @param  keyid   The ID of the key to disable.
 ///////////////////////////////////////////////////////////////////////////////
-FB::variant webpgPluginAPI::gpgDisableKey(const std::string& keyid)
-{
+FB::variant webpgPluginAPI::gpgDisableKey(
+    const std::string& keyid,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
+) {
   Json::Value json_value = m_webpgAPI->gpgDisableKey(keyid);
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -971,6 +1269,14 @@ void webpgPluginAPI::keylist_progress_cb(void *self, const char* msg_value) {
   }
 }
 
+void webpgPluginAPI::javascript_cb(void *self, const char* msg_value) {
+  if (msg_value != NULL) {
+    webpgPluginAPI* API = (webpgPluginAPI*) self;
+    if (API->threaded_js_callback != NULL)
+      API->threaded_js_callback->InvokeAsync("", FB::variant_list_of(msg_value));
+  }
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 /// @fn void threaded_gpgGenKey(genKeyParams params)
 ///
@@ -1002,9 +1308,22 @@ void webpgPluginAPI::threaded_gpgGenSubKey(genSubKeyParams params)
 ///
 /// @param  ascii_key   An armored, ascii encoded PGP Key block.
 ///////////////////////////////////////////////////////////////////////////////
-FB::variant webpgPluginAPI::gpgImportKey(const std::string& ascii_key)
-{
+FB::variant webpgPluginAPI::gpgImportKey(
+    const std::string& ascii_key,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
+) {
   Json::Value json_value = m_webpgAPI->gpgImportKey(ascii_key);
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -1015,9 +1334,22 @@ FB::variant webpgPluginAPI::gpgImportKey(const std::string& ascii_key)
 ///
 /// @param  ascii_key   An armored, ascii encoded PGP Key block.
 ///////////////////////////////////////////////////////////////////////////////
-FB::variant webpgPluginAPI::gpgImportExternalKey(const std::string& keyid)
-{
+FB::variant webpgPluginAPI::gpgImportExternalKey(
+    const std::string& keyid,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
+) {
   Json::Value json_value = m_webpgAPI->gpgImportExternalKey(keyid);
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -1028,9 +1360,22 @@ FB::variant webpgPluginAPI::gpgImportExternalKey(const std::string& keyid)
 ///
 /// @param  keyid   The ID of the key to delete from the Public keyring.
 ///////////////////////////////////////////////////////////////////////////////
-FB::variant webpgPluginAPI::gpgDeletePublicKey(const std::string& keyid)
-{
+FB::variant webpgPluginAPI::gpgDeletePublicKey(
+    const std::string& keyid,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
+) {
   Json::Value json_value = m_webpgAPI->gpgDeletePublicKey(keyid);
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -1041,9 +1386,22 @@ FB::variant webpgPluginAPI::gpgDeletePublicKey(const std::string& keyid)
 ///
 /// @param  keyid   The ID of the key to delete from the Private keyring.
 ///////////////////////////////////////////////////////////////////////////////
-FB::variant webpgPluginAPI::gpgDeletePrivateKey(const std::string& keyid)
-{
+FB::variant webpgPluginAPI::gpgDeletePrivateKey(
+    const std::string& keyid,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
+) {
   Json::Value json_value = m_webpgAPI->gpgDeletePrivateKey(keyid);
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -1058,9 +1416,21 @@ FB::variant webpgPluginAPI::gpgDeletePrivateKey(const std::string& keyid)
 ///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgDeletePrivateSubKey(
     const std::string& keyid,
-    int key_idx
+    int key_idx,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
 ) {
   Json::Value json_value = m_webpgAPI->gpgDeletePrivateSubKey(keyid, key_idx);
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -1075,9 +1445,21 @@ FB::variant webpgPluginAPI::gpgDeletePrivateSubKey(
 ///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgSetKeyTrust(
     const std::string& keyid,
-    long trust_level
+    long trust_level,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
 ) {
   Json::Value json_value = m_webpgAPI->gpgSetKeyTrust(keyid, trust_level);
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -1098,7 +1480,8 @@ FB::variant webpgPluginAPI::gpgAddUID(
     const std::string& keyid,
     const std::string& name,
     const std::string& email,
-    const std::string& comment
+    const std::string& comment,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
 ) {
   Json::Value json_value = m_webpgAPI->gpgAddUID(
     keyid,
@@ -1106,6 +1489,17 @@ FB::variant webpgPluginAPI::gpgAddUID(
     email,
     comment
   );
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -1119,9 +1513,21 @@ FB::variant webpgPluginAPI::gpgAddUID(
 ///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgDeleteUID(
     const std::string& keyid,
-    long uid_idx
+    long uid_idx,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
 ) {
   Json::Value json_value = m_webpgAPI->gpgDeleteUID(keyid, uid_idx);
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -1135,9 +1541,21 @@ FB::variant webpgPluginAPI::gpgDeleteUID(
 ///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgSetPrimaryUID(
     const std::string& keyid,
-    long uid_idx
+    long uid_idx,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
 ) {
   Json::Value json_value = m_webpgAPI->gpgSetPrimaryUID(keyid, uid_idx);
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -1151,9 +1569,21 @@ FB::variant webpgPluginAPI::gpgSetPrimaryUID(
 ///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::gpgSetPubkeyExpire(
     const std::string& keyid,
-    long expire
+    long expire,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
 ) {
   Json::Value json_value = m_webpgAPI->gpgSetPubkeyExpire(keyid, expire);
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -1172,13 +1602,25 @@ FB::variant webpgPluginAPI::gpgSetPubkeyExpire(
 FB::variant webpgPluginAPI::gpgSetSubkeyExpire(
     const std::string& keyid,
     long key_idx,
-    long expire
+    long expire,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
 ) {
   Json::Value json_value = m_webpgAPI->gpgSetSubkeyExpire(
     keyid,
     key_idx,
     expire
   );
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -1188,9 +1630,22 @@ FB::variant webpgPluginAPI::gpgSetSubkeyExpire(
 /// @brief  Exports the public key specified with <keyid> as an ASCII armored
 ///         PGP Block.
 ///////////////////////////////////////////////////////////////////////////////
-FB::variant webpgPluginAPI::gpgExportPublicKey(const std::string& keyid)
-{
+FB::variant webpgPluginAPI::gpgExportPublicKey(
+    const std::string& keyid,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
+) {
   Json::Value json_value = m_webpgAPI->gpgExportPublicKey(keyid);
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -1199,9 +1654,22 @@ FB::variant webpgPluginAPI::gpgExportPublicKey(const std::string& keyid)
 ///
 /// @brief  Exports the key specified by <keyid> to the configured keyserver
 ///////////////////////////////////////////////////////////////////////////////
-FB::variant webpgPluginAPI::gpgPublishPublicKey(const std::string& keyid)
-{
+FB::variant webpgPluginAPI::gpgPublishPublicKey(
+    const std::string& keyid,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
+) {
   Json::Value json_value = m_webpgAPI->gpgPublishPublicKey(keyid);
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -1221,7 +1689,8 @@ FB::variant webpgPluginAPI::gpgPublishPublicKey(const std::string& keyid)
 FB::variant webpgPluginAPI::gpgRevokeKey(
     const std::string& keyid,
     int key_idx, int reason,
-    const std::string &desc
+    const std::string &desc,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
 ) {
   Json::Value json_value = m_webpgAPI->gpgRevokeKey(
     keyid,
@@ -1229,6 +1698,17 @@ FB::variant webpgPluginAPI::gpgRevokeKey(
     reason,
     desc
   );
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -1248,7 +1728,8 @@ FB::variant webpgPluginAPI::gpgRevokeKey(
 FB::variant webpgPluginAPI::gpgRevokeUID(
     const std::string& keyid,
     int uid_idx, int reason,
-    const std::string &desc
+    const std::string &desc,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
 ) {
   Json::Value json_value = m_webpgAPI->gpgRevokeUID(
     keyid,
@@ -1256,6 +1737,17 @@ FB::variant webpgPluginAPI::gpgRevokeUID(
     reason,
     desc
   );
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -1280,7 +1772,8 @@ FB::variant webpgPluginAPI::gpgRevokeSignature(
     int uid_idx,
     int sig_idx,
     int reason,
-    const std::string &desc
+    const std::string &desc,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
 ) {
   Json::Value json_value = m_webpgAPI->gpgRevokeSignature(
     keyid,
@@ -1289,6 +1782,17 @@ FB::variant webpgPluginAPI::gpgRevokeSignature(
     reason,
     desc
   );
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -1299,33 +1803,84 @@ FB::variant webpgPluginAPI::gpgRevokeSignature(
 ///
 /// @param  keyid   The ID of the key to change the passphrase.
 ///////////////////////////////////////////////////////////////////////////////
-FB::variant webpgPluginAPI::gpgChangePassphrase(const std::string& keyid)
-{
+FB::variant webpgPluginAPI::gpgChangePassphrase(
+    const std::string& keyid,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
+) {
   Json::Value json_value = m_webpgAPI->gpgChangePassphrase(keyid);
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
-void webpgPluginAPI::gpgShowPhoto(const std::string& keyid)
-{
+void webpgPluginAPI::gpgShowPhoto(
+        const std::string& keyid,
+        const boost::optional<FB::JSObjectPtr>& callback=NULL
+) {
     m_webpgAPI->gpgShowPhoto(keyid);
+
+    Json::Value json_value = "showing";
+
+    if (callback != NULL) {
+        js_callback = *callback;
+        js_callback->InvokeAsync("",
+                FB::variant_list_of(
+                    FB::jsonToVariantValue(json_value.toStyledString())
+                )
+        );
+    }
 }
 
 FB::variant webpgPluginAPI::gpgAddPhoto(
     const std::string& keyid,
     const std::string& photo_name,
-    const std::string& photo_data
+    const std::string& photo_data,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
 ) {
   Json::Value json_value = m_webpgAPI->gpgAddPhoto(
     keyid,
     photo_name,
     photo_data
   );
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
-FB::variant webpgPluginAPI::gpgGetPhotoInfo(const std::string& keyid)
-{
+FB::variant webpgPluginAPI::gpgGetPhotoInfo(
+    const std::string& keyid,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
+) {
   Json::Value json_value = m_webpgAPI->gpgGetPhotoInfo(keyid);
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -1338,12 +1893,24 @@ FB::variant webpgPluginAPI::gpgGetPhotoInfo(const std::string& keyid)
 ///////////////////////////////////////////////////////////////////////////////
 FB::variant webpgPluginAPI::setTempGPGOption(
     const std::string& option,
-    const std::string& value=NULL
+    const std::string& value=NULL,
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
 ) {
   Json::Value json_value = m_webpgAPI->setTempGPGOption(
     option,
     value
   );
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -1352,9 +1919,21 @@ FB::variant webpgPluginAPI::setTempGPGOption(
 ///
 /// @brief  Restores the gpg.conf file from memory or the backup file.
 ///////////////////////////////////////////////////////////////////////////////
-FB::variant webpgPluginAPI::restoreGPGConfig()
-{
+FB::variant webpgPluginAPI::restoreGPGConfig(
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
+) {
   Json::Value json_value = m_webpgAPI->restoreGPGConfig();
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
@@ -1363,16 +1942,48 @@ FB::variant webpgPluginAPI::restoreGPGConfig()
 ///
 /// @brief  Attempts to determine the system or user temporary path.
 ///////////////////////////////////////////////////////////////////////////////
-FB::variant webpgPluginAPI::getTemporaryPath()
-{
+FB::variant webpgPluginAPI::getTemporaryPath(
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
+) {
   Json::Value json_value = m_webpgAPI->getTemporaryPath();
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(json_value.toStyledString())
+      )
+    );
+    return NULL;
+  }
+
   return FB::jsonValueToVariant(json_value);
 }
 
-FB::VariantMap webpgPluginAPI::get_webpg_status()
-{
+FB::VariantMap webpgPluginAPI::webpg_status() {
   webpgPluginAPI::init();
   return webpgPluginAPI::webpg_status_map;
+}
+
+FB::VariantMap webpgPluginAPI::get_webpg_status(
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
+) {
+  webpgPluginAPI::init();
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        webpgPluginAPI::webpg_status_map
+      )
+    );
+  }
+
+  return webpgPluginAPI::webpg_status_map;
+}
+
+std::string webpgPluginAPI::version() {
+  return FBSTRING_PLUGIN_VERSION;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1381,8 +1992,18 @@ FB::VariantMap webpgPluginAPI::get_webpg_status()
 /// @brief  Retruns the defined plugin version
 ///////////////////////////////////////////////////////////////////////////////
 // Read-only property version
-std::string webpgPluginAPI::get_version()
-{
+std::string webpgPluginAPI::get_version(
+    const boost::optional<FB::JSObjectPtr>& callback=NULL
+) {
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        FB::jsonToVariantValue(FBSTRING_PLUGIN_VERSION)
+      )
+    );
+    return NULL;
+  }
   return FBSTRING_PLUGIN_VERSION;
 }
 
@@ -1421,7 +2042,10 @@ void webpgPluginAPI::setStringMode(const bool& value)
   STRINGMODE = value;
 }
 
-FB::variant webpgPluginAPI::sendMessage(const FB::VariantMap& msgInfo) {
+FB::variant webpgPluginAPI::sendMessage(
+  const FB::VariantMap& msgInfo,
+  const boost::optional<FB::JSObjectPtr>& callback=NULL
+) {
   Json::Value params = variantToJsonValue(msgInfo);
   FB::VariantMap recipients_m = VariantMapValue(msgInfo, "recipients");
   Json::Value recipients = variantToJsonValue(recipients_m);
@@ -1437,12 +2061,17 @@ FB::variant webpgPluginAPI::sendMessage(const FB::VariantMap& msgInfo) {
   FB::variant signers = VariantListValue(msgInfo, "signers");
   params["signers"] = variantToJsonValue(signers);
 
-  return FB::jsonValueToVariant(m_webpgAPI->sendMessage(params));
+  FB::variant result = FB::jsonValueToVariant(m_webpgAPI->sendMessage(params));
+
+  if (callback != NULL) {
+    js_callback = *callback;
+    js_callback->InvokeAsync("",
+      FB::variant_list_of(
+        result
+      )
+    );
+    return NULL;
+  }
+
+  return result;
 }
-
-
-
-
-
-
-

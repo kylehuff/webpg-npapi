@@ -183,7 +183,8 @@ class webpgPluginAPI : public FB::JSAPIAuto
     ///////////////////////////////////////////////////////////////////////////
     FB::variant getPublicKeyList(
       const boost::optional<bool> fast,
-      const boost::optional<bool> async
+      const boost::optional<bool> async,
+      const boost::optional<FB::JSObjectPtr>& callback
     );
 
     void threaded_getPublicKeyList();
@@ -197,7 +198,8 @@ class webpgPluginAPI : public FB::JSAPIAuto
     ///////////////////////////////////////////////////////////////////////////
     FB::variant getPrivateKeyList(
         const boost::optional<bool> fast,
-        const boost::optional<bool> async
+        const boost::optional<bool> async,
+        const boost::optional<FB::JSObjectPtr>& callback
     );
 
     ///////////////////////////////////////////////////////////////////////////
@@ -210,7 +212,8 @@ class webpgPluginAPI : public FB::JSAPIAuto
     FB::variant getNamedKey(
         const std::string& name,
         const boost::optional<bool> fast,
-        const boost::optional<bool> async
+        const boost::optional<bool> async,
+        const boost::optional<FB::JSObjectPtr>& callback
     );
 
     ///////////////////////////////////////////////////////////////////////////
@@ -220,7 +223,10 @@ class webpgPluginAPI : public FB::JSAPIAuto
     ///         external mode with a search string and the secret_only paramter as
     ///         "0", which returns only Public Keys
     ///////////////////////////////////////////////////////////////////////////
-    FB::variant getExternalKey(const std::string& name);
+    FB::variant getExternalKey(
+        const std::string& name,
+        const boost::optional<FB::JSObjectPtr>& callback
+    );
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant gpgSetPreference(const std::string& preference,
@@ -234,7 +240,8 @@ class webpgPluginAPI : public FB::JSAPIAuto
     ///////////////////////////////////////////////////////////////////////////
     FB::variant gpgSetPreference(
         const std::string& preference,
-        const std::string& pref_value
+        const std::string& pref_value,
+        const boost::optional<FB::JSObjectPtr>& callback
     );
 
     ///////////////////////////////////////////////////////////////////////////
@@ -245,7 +252,10 @@ class webpgPluginAPI : public FB::JSAPIAuto
     ///
     /// @param  preference  The preference to set.
     ///////////////////////////////////////////////////////////////////////////
-    FB::variant gpgGetPreference(const std::string& preference);
+    FB::variant gpgGetPreference(
+        const std::string& preference,
+        const boost::optional<FB::JSObjectPtr>& callback
+    );
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgSetGroup(
@@ -260,7 +270,8 @@ class webpgPluginAPI : public FB::JSAPIAuto
     ///////////////////////////////////////////////////////////////////////////
     FB::variant gpgSetGroup(
         const std::string& group,
-        const std::string& group_value
+        const std::string& group_value,
+        const boost::optional<FB::JSObjectPtr>& callback
     );
 
     ///////////////////////////////////////////////////////////////////////////
@@ -270,8 +281,13 @@ class webpgPluginAPI : public FB::JSAPIAuto
     ///         gnupg_path. This should be called prior to initializing the
     ///         gpgme context.
     ///////////////////////////////////////////////////////////////////////////
-    FB::variant gpgSetHomeDir(const std::string& gnupg_path);
-    FB::variant gpgGetHomeDir();
+    FB::variant gpgSetHomeDir(
+        const std::string& gnupg_path,
+        const boost::optional<FB::JSObjectPtr>& callback
+    );
+    FB::variant gpgGetHomeDir(
+        const boost::optional<FB::JSObjectPtr>& callback
+    );
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgSetBinary(const std::string& gnupg_exec)
@@ -280,8 +296,13 @@ class webpgPluginAPI : public FB::JSAPIAuto
     ///         gnupg_exec. This should be called prior to initializing the
     ///         gpgme context.
     ///////////////////////////////////////////////////////////////////////////
-    FB::variant gpgSetBinary(const std::string& gnupg_exec);
-    FB::variant gpgGetBinary();
+    FB::variant gpgSetBinary(
+        const std::string& gnupg_exec,
+        const boost::optional<FB::JSObjectPtr>& callback
+    );
+    FB::variant gpgGetBinary(
+        const boost::optional<FB::JSObjectPtr>& callback
+    );
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgSetGPGConf(const std::string& gpgconf_exec)
@@ -289,8 +310,13 @@ class webpgPluginAPI : public FB::JSAPIAuto
     /// @brief  Sets the GPGCONF static variable to the path specified in
     ///         gpgconf_exec.
     ///////////////////////////////////////////////////////////////////////////
-    FB::variant gpgSetGPGConf(const std::string& gpgconf_exec);
-    FB::variant gpgGetGPGConf();
+    FB::variant gpgSetGPGConf(
+        const std::string& gpgconf_exec,
+        const boost::optional<FB::JSObjectPtr>& callback
+    );
+    FB::variant gpgGetGPGConf(
+        const boost::optional<FB::JSObjectPtr>& callback
+    );
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgEncrypt(const std::string& data, const FB::VariantList& enc_to_keyids, bool sign)
@@ -306,7 +332,8 @@ class webpgPluginAPI : public FB::JSAPIAuto
         const std::string& data,
         const FB::VariantList& enc_to_keyids,
         const boost::optional<bool>& sign,
-        const boost::optional<FB::VariantList>& opt_signers
+        const boost::optional<FB::VariantList>& opt_signers,
+        const boost::optional<FB::JSObjectPtr>& callback
     );
 
     ///////////////////////////////////////////////////////////////////////////
@@ -323,7 +350,8 @@ class webpgPluginAPI : public FB::JSAPIAuto
     FB::variant gpgSymmetricEncrypt(
         const std::string& data,
         const boost::optional<bool>& sign,
-        const boost::optional<FB::VariantList>& opt_signers
+        const boost::optional<FB::VariantList>& opt_signers,
+        const boost::optional<FB::JSObjectPtr>& callback
     );
 
     ///////////////////////////////////////////////////////////////////////////
@@ -342,7 +370,8 @@ class webpgPluginAPI : public FB::JSAPIAuto
     FB::variant gpgDecryptVerify(
         const std::string& data,
         const std::string& plaintext,
-        int use_agent
+        int use_agent,
+        const boost::optional<FB::JSObjectPtr>& callback
     );
 
     ///////////////////////////////////////////////////////////////////////////
@@ -353,11 +382,15 @@ class webpgPluginAPI : public FB::JSAPIAuto
     ///
     /// @param  data    The data to decyrpt.
     ///////////////////////////////////////////////////////////////////////////
-    FB::variant gpgDecrypt(const std::string& data);
+    FB::variant gpgDecrypt(
+        const std::string& data,
+        const boost::optional<FB::JSObjectPtr>& callback
+    );
 
     FB::variant gpgVerify(
         const std::string& data,
-        const boost::optional<std::string>& plaintext
+        const boost::optional<std::string>& plaintext,
+        const boost::optional<FB::JSObjectPtr>& callback
     );
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgSignText(FB::VariantList& signers, const std::string& plain_text, int sign_mode)
@@ -366,9 +399,10 @@ class webpgPluginAPI : public FB::JSAPIAuto
     ///         in signers, with the signature mode specified in sign_mode.
     ///////////////////////////////////////////////////////////////////////////
     FB::variant gpgSignText(
-      const std::string& plain_text,
-      const FB::VariantList& signers,
-      const boost::optional<int>& opt_sign_mode
+        const std::string& plain_text,
+        const FB::VariantList& signers,
+        const boost::optional<int>& opt_sign_mode,
+        const boost::optional<FB::JSObjectPtr>& callback
     );
 
     ///////////////////////////////////////////////////////////////////////////
@@ -385,14 +419,15 @@ class webpgPluginAPI : public FB::JSAPIAuto
     /// @param  trust_level The level of trust to assign.
     ///////////////////////////////////////////////////////////////////////////
     FB::variant gpgSignUID(
-      const std::string& keyid,
-      long uid,
-      const std::string& with_keyid,
-      long local_only,
-      long trust_sign,
-      long trust_level,
-      const boost::optional<std::string>& notation_name,
-      const boost::optional<std::string>& notation_value
+        const std::string& keyid,
+        long uid,
+        const std::string& with_keyid,
+        long local_only,
+        long trust_sign,
+        long trust_level,
+        const boost::optional<std::string>& notation_name,
+        const boost::optional<std::string>& notation_value,
+        const boost::optional<FB::JSObjectPtr>& callback
     );
 
     ///////////////////////////////////////////////////////////////////////////
@@ -407,7 +442,8 @@ class webpgPluginAPI : public FB::JSAPIAuto
     FB::variant gpgDeleteUIDSign(
         const std::string& keyid,
         long sign_uid,
-        long signature
+        long signature,
+        const boost::optional<FB::JSObjectPtr>& callback
     );
 
     ///////////////////////////////////////////////////////////////////////////
@@ -417,7 +453,10 @@ class webpgPluginAPI : public FB::JSAPIAuto
     ///
     /// @param  keyid    The ID of the key to enable.
     ///////////////////////////////////////////////////////////////////////////
-    FB::variant gpgEnableKey(const std::string& keyid);
+    FB::variant gpgEnableKey(
+        const std::string& keyid,
+        const boost::optional<FB::JSObjectPtr>& callback
+    );
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgDisableKey(const std::string& keyid)
@@ -426,7 +465,10 @@ class webpgPluginAPI : public FB::JSAPIAuto
     ///
     /// @param  keyid   The ID of the key to disable.
     ///////////////////////////////////////////////////////////////////////////
-    FB::variant gpgDisableKey(const std::string& keyid);
+    FB::variant gpgDisableKey(
+        const std::string& keyid,
+        const boost::optional<FB::JSObjectPtr>& callback
+    );
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn std::string webpgPluginAPI::gpgGenKey(const std::string& key_type, const std::string& key_length,
@@ -520,6 +562,9 @@ class webpgPluginAPI : public FB::JSAPIAuto
     );
 
     static void keylist_progress_cb(void *self, const char* msg_value);
+    static void javascript_cb(void *self, const char* msg_value);
+    FB::JSObjectPtr threaded_js_callback;
+    FB::JSObjectPtr js_callback;  
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn void webpgPluginAPI::threaded_gpgGenKey(genKeyParams params)
@@ -546,7 +591,10 @@ class webpgPluginAPI : public FB::JSAPIAuto
     ///
     /// @param  ascii_key   An armored, ascii encoded PGP Key block.
     ///////////////////////////////////////////////////////////////////////////
-    FB::variant gpgImportKey(const std::string& ascii_key);
+    FB::variant gpgImportKey(
+        const std::string& ascii_key,
+        const boost::optional<FB::JSObjectPtr>& callback
+    );
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgImportExternalKey(const std::string& ascii_key)
@@ -555,7 +603,10 @@ class webpgPluginAPI : public FB::JSAPIAuto
     ///
     /// @param  ascii_key   An armored, ascii encoded PGP Key block.
     ///////////////////////////////////////////////////////////////////////////
-    FB::variant gpgImportExternalKey(const std::string& keyid);
+    FB::variant gpgImportExternalKey(
+        const std::string& keyid,
+        const boost::optional<FB::JSObjectPtr>& callback
+    );
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgDeletePublicKey(const std::string& keyid)
@@ -564,7 +615,10 @@ class webpgPluginAPI : public FB::JSAPIAuto
     ///
     /// @param  keyid   The ID of the key to delete from the Public keyring.
     ///////////////////////////////////////////////////////////////////////////
-    FB::variant gpgDeletePublicKey(const std::string& keyid);
+    FB::variant gpgDeletePublicKey(
+        const std::string& keyid,
+        const boost::optional<FB::JSObjectPtr>& callback
+    );
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgDeletePrivateKey(const std::string& keyid)
@@ -573,7 +627,10 @@ class webpgPluginAPI : public FB::JSAPIAuto
     ///
     /// @param  keyid   The ID of the key to delete from the Private keyring.
     ///////////////////////////////////////////////////////////////////////////
-    FB::variant gpgDeletePrivateKey(const std::string& keyid);
+    FB::variant gpgDeletePrivateKey(
+        const std::string& keyid,
+        const boost::optional<FB::JSObjectPtr>& callback
+    );
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgDeletePrivateSubKey(const std::string& keyid, int key_idx)
@@ -583,7 +640,11 @@ class webpgPluginAPI : public FB::JSAPIAuto
     /// @param  keyid   The ID of the key to delete the subkey from.
     /// @param  key_idx The index of the subkey to delete.
     ///////////////////////////////////////////////////////////////////////////
-    FB::variant gpgDeletePrivateSubKey(const std::string& keyid, int key_idx);
+    FB::variant gpgDeletePrivateSubKey(
+        const std::string& keyid,
+        int key_idx,
+        const boost::optional<FB::JSObjectPtr>& callback
+    );
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgSetKeyTrust(const std::string& keyid, long trust_level)
@@ -593,7 +654,11 @@ class webpgPluginAPI : public FB::JSAPIAuto
     /// @param  keyid   The ID of the key to assign the trust level on.
     /// @param  trust_level The level of trust to assign.
     ///////////////////////////////////////////////////////////////////////////
-    FB::variant gpgSetKeyTrust(const std::string& keyid, long trust_level);
+    FB::variant gpgSetKeyTrust(
+        const std::string& keyid,
+        long trust_level,
+        const boost::optional<FB::JSObjectPtr>& callback
+    );
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgAddUID(const std::string& keyid, const std::string& name,
@@ -610,7 +675,8 @@ class webpgPluginAPI : public FB::JSAPIAuto
         const std::string& keyid,
         const std::string& name,
         const std::string& email,
-        const std::string& comment
+        const std::string& comment,
+        const boost::optional<FB::JSObjectPtr>& callback
     );
 
     ///////////////////////////////////////////////////////////////////////////
@@ -621,7 +687,11 @@ class webpgPluginAPI : public FB::JSAPIAuto
     /// @param  keyid   The ID of the key to delete to the specified UID from.
     /// @param  uid_idx The index of the UID to delete from the key.
     ///////////////////////////////////////////////////////////////////////////
-    FB::variant gpgDeleteUID(const std::string& keyid, long uid_idx);
+    FB::variant gpgDeleteUID(
+        const std::string& keyid,
+        long uid_idx,
+        const boost::optional<FB::JSObjectPtr>& callback
+    );
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgSetPrimaryUID(const std::string& keyid, long uid_idx)
@@ -631,7 +701,11 @@ class webpgPluginAPI : public FB::JSAPIAuto
     /// @param  keyid   The ID of the key with the UID to make primary.
     /// @param  uid_idx The index of the UID to make primary on the key.
     ///////////////////////////////////////////////////////////////////////////
-    FB::variant gpgSetPrimaryUID(const std::string& keyid, long uid_idx);
+    FB::variant gpgSetPrimaryUID(
+        const std::string& keyid,
+        long uid_idx,
+        const boost::optional<FB::JSObjectPtr>& callback
+    );
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgSetKeyExpire(const std::string& keyid, long key_idx, long expire)
@@ -645,7 +719,8 @@ class webpgPluginAPI : public FB::JSAPIAuto
     FB::variant gpgSetKeyExpire(
         const std::string& keyid,
         long key_idx,
-        long expire
+        long expire,
+        const boost::optional<FB::JSObjectPtr>& callback
     );
 
     ///////////////////////////////////////////////////////////////////////////
@@ -656,7 +731,11 @@ class webpgPluginAPI : public FB::JSAPIAuto
     /// @param  keyid   The ID of the key to set the expiration on.
     /// @param  expire  The expiration to assign to the key.
     ///////////////////////////////////////////////////////////////////////////
-    FB::variant gpgSetPubkeyExpire(const std::string& keyid, long expire);
+    FB::variant gpgSetPubkeyExpire(
+        const std::string& keyid,
+        long expire,
+        const boost::optional<FB::JSObjectPtr>& callback
+    );
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgSetSubkeyExpire(const std::string& keyid, long key_idx, long expire)
@@ -670,7 +749,8 @@ class webpgPluginAPI : public FB::JSAPIAuto
     FB::variant gpgSetSubkeyExpire(
         const std::string& keyid,
         long key_idx,
-        long expire
+        long expire,
+        const boost::optional<FB::JSObjectPtr>& callback
     );
 
     ///////////////////////////////////////////////////////////////////////////
@@ -678,14 +758,20 @@ class webpgPluginAPI : public FB::JSAPIAuto
     ///
     /// @brief  Exports the public key specified with keyid as an ASCII armored encoded PGP Block.
     ///////////////////////////////////////////////////////////////////////////
-    FB::variant gpgExportPublicKey(const std::string& keyid);
+    FB::variant gpgExportPublicKey(
+        const std::string& keyid,
+        const boost::optional<FB::JSObjectPtr>& callback
+    );
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgPublishPublicKey(const std::string& keyid)
     ///
     /// @brief  Exports the key specified by keyid to the configured keyserver
     ///////////////////////////////////////////////////////////////////////////
-    FB::variant gpgPublishPublicKey(const std::string& keyid);
+    FB::variant gpgPublishPublicKey(
+        const std::string& keyid,
+        const boost::optional<FB::JSObjectPtr>& callback
+    );
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::gpgRevokeKey(const std::string& keyid, int key_idx, int reason,
@@ -702,7 +788,8 @@ class webpgPluginAPI : public FB::JSAPIAuto
         const std::string& keyid,
         int key_idx,
         int reason,
-        const std::string &desc
+        const std::string &desc,
+        const boost::optional<FB::JSObjectPtr>& callback
     );
 
     ///////////////////////////////////////////////////////////////////////////
@@ -720,7 +807,8 @@ class webpgPluginAPI : public FB::JSAPIAuto
         const std::string& keyid,
         int uid_idx,
         int reason,
-        const std::string &desc
+        const std::string &desc,
+        const boost::optional<FB::JSObjectPtr>& callback
     );
 
     ///////////////////////////////////////////////////////////////////////////
@@ -740,7 +828,8 @@ class webpgPluginAPI : public FB::JSAPIAuto
         int uid_idx,
         int sig_idx,
         int reason,
-        const std::string &desc
+        const std::string &desc,
+        const boost::optional<FB::JSObjectPtr>& callback
     );
 
     ///////////////////////////////////////////////////////////////////////////
@@ -750,17 +839,27 @@ class webpgPluginAPI : public FB::JSAPIAuto
     ///
     /// @param  keyid   The ID of the key to change the passphrase.
     ///////////////////////////////////////////////////////////////////////////
-    FB::variant gpgChangePassphrase(const std::string& keyid);
+    FB::variant gpgChangePassphrase(
+        const std::string& keyid,
+        const boost::optional<FB::JSObjectPtr>& callback
+    );
 
-    void gpgShowPhoto(const std::string& keyid);
+    void gpgShowPhoto(
+        const std::string& keyid,
+        const boost::optional<FB::JSObjectPtr>& callback
+    );
 
     FB::variant gpgAddPhoto(
         const std::string& keyid,
         const std::string& photo_name,
-        const std::string& photo_data
+        const std::string& photo_data,
+        const boost::optional<FB::JSObjectPtr>& callback
     );
 
-    FB::variant gpgGetPhotoInfo(const std::string& keyid);
+    FB::variant gpgGetPhotoInfo(
+        const std::string& keyid,
+        const boost::optional<FB::JSObjectPtr>& callback
+    );
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::setTempGPGOption(const std::string& option, const std::string& value)
@@ -770,7 +869,8 @@ class webpgPluginAPI : public FB::JSAPIAuto
     ///////////////////////////////////////////////////////////////////////////
     FB::variant setTempGPGOption(
         const std::string& option,
-        const std::string& value
+        const std::string& value,
+        const boost::optional<FB::JSObjectPtr>& callback
     );
 
     ///////////////////////////////////////////////////////////////////////////
@@ -778,16 +878,25 @@ class webpgPluginAPI : public FB::JSAPIAuto
     ///
     /// @brief  Restores the gpg.conf file from memory or the backup file.
     ///////////////////////////////////////////////////////////////////////////
-    FB::variant restoreGPGConfig();
+    FB::variant restoreGPGConfig(
+        const boost::optional<FB::JSObjectPtr>& callback
+    );
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::getTemporaryPath()
     ///
     /// @brief  Attempts to determine the system or user temporary path.
     ///////////////////////////////////////////////////////////////////////////
-    FB::variant getTemporaryPath();
+    FB::variant getTemporaryPath(
+        const boost::optional<FB::JSObjectPtr>& callback
+    );
 
-    FB::variant sendMessage(const FB::VariantMap& msgInfo);
+    FB::variant sendMessage(
+        const FB::VariantMap& msgInfo,
+        const boost::optional<FB::JSObjectPtr>& callback
+    );
+
+    FB::VariantMap webpg_status();
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn FB::variant webpgPluginAPI::get_webpg_status()
@@ -796,14 +905,19 @@ class webpgPluginAPI : public FB::JSAPIAuto
     ///         populates the "edit_status" property with the contents of the
     ///         edit_status constant.
     ///////////////////////////////////////////////////////////////////////////
-    FB::VariantMap get_webpg_status();
+    FB::VariantMap get_webpg_status(
+        const boost::optional<FB::JSObjectPtr>& callback
+    );
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn std::string webpgPluginAPI::get_version()
     ///
     /// @brief  Retruns the defined plugin version
     ///////////////////////////////////////////////////////////////////////////
-    std::string get_version();
+    std::string version();
+    std::string get_version(
+        const boost::optional<FB::JSObjectPtr>& callback
+    );
 
     ///////////////////////////////////////////////////////////////////////////
     /// @fn bool webpgPluginAPI::openpgp_detected()
