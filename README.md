@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/webpg/webpg-npapi.png)](https://travis-ci.org/webpg/webpg-npapi)
+
 Description
 ===========
 webpg-npapi is an [NPAPI](https://developer.mozilla.org/en-US/docs/Plugins) plugin project that provides GnuPG related Public/Private Key operations for use in major browsers.
